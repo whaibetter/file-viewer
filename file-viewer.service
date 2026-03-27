@@ -1,0 +1,13 @@
+[Unit]
+Description=File Viewer Backend Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/file-viewer-server.py
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

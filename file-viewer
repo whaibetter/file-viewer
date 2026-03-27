@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+# file-viewer — 管理文件查看器服务的启停脚本
+# 用法: file-viewer {start|stop|restart|status|enable|disable|passwd}
+
+SERVICE="file-viewer"
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+RESET='\033[0m'
+
+_check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}错误：请使用 root 权限运行此脚本${RESET}" >&2
+        exit 1
+    fi
+}
+
+_status_line() {
+    local active
+    active=$(systemctl is-active "$SERVICE" 2>/dev/null)
+    local enabled
+    enabled=$(systemctl is-enabled "$SERVICE" 2>/dev/null)
+
+    if [ "$active" = "active" ]; then
+        echo -e "  运行状态：${GREEN}${BOLD}运行中 (active)${RESET}"
+    else
+        echo -e "  运行状态：${RED}${BOLD}已停止 (${active})${RESET}"
+    fi
+
+    if [ "$enabled" = "enabled" ]; then
+        echo -e "  开机自启：${GREEN}已启用${RESET}"
+    else
+        echo -e "  开机自启：${YELLOW}已禁用${RESET}"
+    fi
+
+    local pid
+    pid=$(systemctl show -p MainPID --value "$SERVICE" 2>/dev/null)
+    if [ -n "$pid" ] && [ "$pid" != "0" ]; then
+        echo -e "  进程 PID：${CYAN}${pid}${RESET}"
+    fi
+
+    local port=9001
+    echo -e "  监听地址：${CYAN}127.0.0.1:${port}${RESET}"
+
+    local url="http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')"
+    echo -e "  访问地址：${CYAN}${url}${RESET}"
+}
+
+cmd_start() {
+    _check_root
+    echo -e "${BOLD}启动文件查看器服务...${RESET}"
+    if systemctl is-active --quiet "$SERVICE"; then
+        echo -e "${YELLOW}服务已在运行，无需重复启动${RESET}"
+        _status_line
+        exit 0
+    fi
+    systemctl start "$SERVICE"
+    sleep 0.5
+    if systemctl is-active --quiet "$SERVICE"; then
+        echo -e "${GREEN}${BOLD}启动成功${RESET}"
+    else
+        echo -e "${RED}${BOLD}启动失败，请查看日志：journalctl -u ${SERVICE} -n 20${RESET}" >&2
+        exit 1
+    fi
+    _status_line
+}
+
+cmd_stop() {
+    _check_root
+    echo -e "${BOLD}停止文件查看器服务...${RESET}"
+    if ! systemctl is-active --quiet "$SERVICE"; then
+        echo -e "${YELLOW}服务未在运行${RESET}"
+        exit 0
+    fi
+    systemctl stop "$SERVICE"
+    echo -e "${GREEN}${BOLD}服务已停止${RESET}"
+    echo -e "  提示：nginx 仍在运行，访问 /api/file 将返回 502，其余页面不受影响"
+}
+
+cmd_restart() {
+    _check_root
+    echo -e "${BOLD}重启文件查看器服务...${RESET}"
+    systemctl restart "$SERVICE"
+    sleep 0.5
+    if systemctl is-active --quiet "$SERVICE"; then
+        echo -e "${GREEN}${BOLD}重启成功${RESET}"
+    else
+        echo -e "${RED}${BOLD}重启失败，请查看日志：journalctl -u ${SERVICE} -n 20${RESET}" >&2
+        exit 1
+    fi
+    _status_line
+}
+
+cmd_status() {
+    echo -e "${BOLD}=== 文件查看器服务状态 ===${RESET}"
+    _status_line
+    echo ""
+    systemctl status "$SERVICE" --no-pager -l 2>/dev/null | tail -n +4 | head -12
+}
+
+cmd_enable() {
+    _check_root
+    systemctl enable "$SERVICE"
+    echo -e "${GREEN}已设置开机自启${RESET}"
+}
+
+cmd_disable() {
+    _check_root
+    systemctl disable "$SERVICE"
+    echo -e "${YELLOW}已取消开机自启（不影响当前运行状态）${RESET}"
+}
+
+cmd_passwd() {
+    _check_root
+    local pw1 pw2
+    echo -e "${BOLD}修改登录密码${RESET}"
+    printf "新密码：" && read -rs pw1 && echo
+    if [ ${#pw1} -lt 6 ]; then
+        echo -e "${RED}密码长度不能少于 6 位${RESET}" >&2
+        exit 1
+    fi
+    printf "确认密码：" && read -rs pw2 && echo
+    if [ "$pw1" != "$pw2" ]; then
+        echo -e "${RED}两次输入不一致${RESET}" >&2
+        exit 1
+    fi
+    echo -n "$pw1" | sha256sum | awk '{print $1}' > /etc/file-viewer.passwd
+    chmod 600 /etc/file-viewer.passwd
+    echo -e "${GREEN}${BOLD}密码修改成功${RESET}"
+    echo -e "  提示：已登录的 session 不受影响，下次登录时生效"
+}
+
+cmd_help() {
+    echo -e "${BOLD}用法：${RESET} file-viewer <命令>"
+    echo ""
+    echo -e "  ${CYAN}start${RESET}     启动服务"
+    echo -e "  ${CYAN}stop${RESET}      停止服务"
+    echo -e "  ${CYAN}restart${RESET}   重启服务"
+    echo -e "  ${CYAN}status${RESET}    查看运行状态"
+    echo -e "  ${CYAN}enable${RESET}    设置开机自启"
+    echo -e "  ${CYAN}disable${RESET}   取消开机自启"
+    echo -e "  ${CYAN}passwd${RESET}    修改登录密码"
+}
+
+case "${1:-}" in
+    start)   cmd_start   ;;
+    stop)    cmd_stop    ;;
+    restart) cmd_restart ;;
+    status)  cmd_status  ;;
+    enable)  cmd_enable  ;;
+    disable) cmd_disable ;;
+    passwd)  cmd_passwd  ;;
+    *)       cmd_help    ;;
+esac
