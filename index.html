@@ -107,6 +107,10 @@
         .btn:hover { background: #30363d; border-color: #8b949e; }
         .btn.primary { background: #1f6feb; border-color: #388bfd; color: #fff; }
         .btn.primary:hover { background: #388bfd; }
+        .btn.danger { background: #da3633; border-color: #f85149; color: #fff; }
+        .btn.danger:hover { background: #f85149; }
+        .btn.success { background: #238636; border-color: #2ea043; color: #fff; }
+        .btn.success:hover { background: #2ea043; }
 
         .quick-paths {
             background: #161b22;
@@ -190,8 +194,8 @@
         .line-content { flex: 1; }
 
         .dir-table { width: 100%; border-collapse: collapse; }
-        .dir-table th { background: #161b22; padding: 10px 24px; text-align: left; font-size: 0.85em; color: #8b949e; font-weight: 500; border-bottom: 1px solid #30363d; position: sticky; top: 0; }
-        .dir-table td { padding: 8px 24px; border-bottom: 1px solid #21262d; font-size: 0.9em; }
+        .dir-table th { background: #161b22; padding: 10px 12px; text-align: left; font-size: 0.85em; color: #8b949e; font-weight: 500; border-bottom: 1px solid #30363d; position: sticky; top: 0; }
+        .dir-table td { padding: 8px 12px; border-bottom: 1px solid #21262d; font-size: 0.9em; }
         .dir-table tr:hover td { background: #161b22; }
         .dir-icon { margin-right: 8px; }
         .dir-name { color: #58a6ff; cursor: pointer; }
@@ -209,29 +213,30 @@
         .loading-bar { height: 2px; background: #58a6ff; width: 0; transition: width 0.3s; position: fixed; top: 0; left: 0; z-index: 100; }
 
         .view-toggle { display: flex; gap: 4px; }
-        .toggle-btn { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 3px 12px; border-radius: 4px; font-size: 0.82em; cursor: pointer; transition: all 0.15s; }
-        .toggle-btn:hover { color: #c9d1d9; border-color: #8b949e; }
+        .toggle-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 4px 12px; border-radius: 6px; font-size: 0.82em; cursor: pointer; transition: all 0.15s; }
+        .toggle-btn:hover { background: #30363d; border-color: #8b949e; }
         .toggle-btn.active { background: #1f6feb; border-color: #388bfd; color: #fff; }
 
         /* ── Markdown ── */
-        .md-body { padding: 32px 48px; max-width: 860px; margin: 0 auto; font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 0.95em; line-height: 1.75; color: #e6edf3; }
+        .md-body { padding: 32px 48px; max-width: 860px; margin: 0 auto; font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 0.95em; line-height: 1.75; color: #e6edf3; overflow-x: hidden; }
         .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 { color: #e6edf3; margin: 1.5em 0 0.5em; font-weight: 600; line-height: 1.3; }
         .md-body h1 { font-size: 2em; border-bottom: 1px solid #30363d; padding-bottom: 0.3em; }
         .md-body h2 { font-size: 1.5em; border-bottom: 1px solid #21262d; padding-bottom: 0.25em; }
         .md-body h3 { font-size: 1.25em; }
-        .md-body p { margin: 0.75em 0; }
+        .md-body p { margin: 0.75em 0; overflow-wrap: break-word; word-wrap: break-word; }
         .md-body a { color: #58a6ff; text-decoration: none; }
         .md-body a:hover { text-decoration: underline; }
-        .md-body code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 0.88em; background: #21262d; border: 1px solid #30363d; border-radius: 4px; padding: 0.15em 0.4em; color: #e6edf3; }
-        .md-body pre { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; white-space: pre; word-break: normal; counter-reset: none; }
+        .md-body code { font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace; font-size: 0.88em; background: #21262d; border: 1px solid #30363d; border-radius: 4px; padding: 0.15em 0.4em; color: #e6edf3; word-break: break-all; }
+        .md-body pre { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px 20px; overflow-x: auto; margin: 1em 0; white-space: pre; word-break: normal; counter-reset: none; max-width: 100%; }
         .md-body pre code { background: none; border: none; padding: 0; font-size: 0.87em; color: #e6edf3; }
         .md-body blockquote { border-left: 4px solid #30363d; margin: 1em 0; padding: 0.5em 1em; color: #8b949e; background: #161b22; border-radius: 0 4px 4px 0; }
         .md-body blockquote p { margin: 0; }
         .md-body ul, .md-body ol { padding-left: 2em; margin: 0.75em 0; }
         .md-body li { margin: 0.3em 0; }
-        .md-body table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.9em; }
-        .md-body th { background: #161b22; color: #c9d1d9; font-weight: 600; padding: 8px 12px; border: 1px solid #30363d; text-align: left; }
-        .md-body td { padding: 7px 12px; border: 1px solid #21262d; }
+        .md-body .table-wrap { overflow-x: auto; margin: 1em 0; max-width: 100%; }
+        .md-body table { border-collapse: collapse; width: 100%; margin: 0; font-size: 0.9em; display: block; max-width: fit-content; }
+        .md-body th { background: #161b22; color: #c9d1d9; font-weight: 600; padding: 8px 12px; border: 1px solid #30363d; text-align: left; white-space: nowrap; }
+        .md-body td { padding: 7px 12px; border: 1px solid #21262d; white-space: pre-wrap; word-break: break-word; max-width: 400px; }
         .md-body tr:nth-child(even) td { background: #161b22; }
         .md-body hr { border: none; border-top: 1px solid #30363d; margin: 2em 0; }
         .md-body img { max-width: 100%; border-radius: 6px; }
@@ -257,136 +262,40 @@
         .logout-btn:hover { color: #f85149; border-color: #f85149; }
 
         /* ── System Monitor Dashboard ── */
-        .monitor-wrap {
-            padding: 24px;
-            overflow-y: auto;
-            flex: 1;
-        }
-
-        .mon-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
+        .monitor-wrap { padding: 24px; overflow-y: auto; flex: 1; }
+        .mon-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .mon-header h2 { font-size: 1.15em; color: #e6edf3; font-weight: 600; }
-
-        .mon-meta {
-            font-size: 0.8em;
-            color: #484f58;
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-
-        .mon-live {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            color: #4ade80;
-            font-size: 0.82em;
-        }
-
-        .mon-live-dot {
-            width: 6px; height: 6px;
-            background: #4ade80;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .mon-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 16px;
-        }
-
-        .mon-card {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            padding: 20px;
-        }
-
-        .mon-card-title {
-            font-size: 0.82em;
-            color: #8b949e;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .mon-big-num {
-            font-size: 2em;
-            font-weight: 700;
-            color: #e6edf3;
-            line-height: 1;
-            margin-bottom: 4px;
-            font-family: 'Cascadia Code', 'Fira Code', monospace;
-        }
-
+        .mon-meta { font-size: 0.8em; color: #484f58; display: flex; gap: 16px; align-items: center; }
+        .mon-live { display: inline-flex; align-items: center; gap: 5px; color: #4ade80; font-size: 0.82em; }
+        .mon-live-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .mon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+        .mon-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; }
+        .mon-card-title { font-size: 0.82em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+        .mon-big-num { font-size: 2em; font-weight: 700; color: #e6edf3; line-height: 1; margin-bottom: 4px; font-family: 'Cascadia Code', 'Fira Code', monospace; }
         .mon-sub { font-size: 0.82em; color: #484f58; }
-
-        /* Progress bar */
-        .pbar-wrap {
-            background: #21262d;
-            border-radius: 4px;
-            height: 8px;
-            margin: 10px 0 6px;
-            overflow: hidden;
-        }
-
-        .pbar {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.6s ease;
-        }
-
+        .pbar-wrap { background: #21262d; border-radius: 4px; height: 8px; margin: 10px 0 6px; overflow: hidden; }
+        .pbar { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
         .pbar-green { background: #4ade80; }
         .pbar-yellow { background: #facc15; }
         .pbar-red { background: #f85149; }
-
-        .mon-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            font-size: 0.88em;
-            border-bottom: 1px solid #21262d;
-        }
-
+        .mon-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 0.88em; border-bottom: 1px solid #21262d; }
         .mon-row:last-child { border-bottom: none; }
         .mon-row .label { color: #8b949e; }
         .mon-row .val { color: #e6edf3; font-family: monospace; }
-
-        /* Disk cards */
         .disk-item { margin-bottom: 12px; }
         .disk-item:last-child { margin-bottom: 0; }
         .disk-mount { font-family: monospace; font-size: 0.88em; color: #58a6ff; }
         .disk-device { font-size: 0.78em; color: #484f58; }
         .disk-detail { display: flex; justify-content: space-between; font-size: 0.82em; color: #8b949e; margin-top: 2px; }
-
-        /* Network */
         .net-rate { font-size: 1.4em; font-weight: 600; color: #e6edf3; font-family: monospace; }
         .net-label { font-size: 0.78em; color: #8b949e; margin-top: 2px; }
         .net-pair { display: flex; gap: 32px; margin-bottom: 12px; }
-
-        /* Process table */
         .proc-table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
         .proc-table th { color: #8b949e; font-weight: 500; text-align: left; padding: 4px 8px; border-bottom: 1px solid #30363d; }
         .proc-table td { padding: 4px 8px; border-bottom: 1px solid #21262d; color: #c9d1d9; font-family: monospace; }
         .proc-table tr:hover td { background: #0d1117; }
-
         .mon-card.wide { grid-column: 1 / -1; }
-
-        /* Hide sections */
         .section-hidden { display: none !important; }
         
         /* Edit Textarea */
@@ -412,10 +321,32 @@
         .perm-readwrite { color: #4ade80; }
         
         /* Toolbar */
-        .dir-toolbar { background: #161b22; border-bottom: 1px solid #30363d; padding: 10px 24px; display: flex; gap: 8px; }
-        .toolbar-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 14px; border-radius: 6px; font-size: 0.88em; cursor: pointer; transition: all 0.15s; }
+        .dir-toolbar { background: #161b22; border-bottom: 1px solid #30363d; padding: 10px 20px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .toolbar-btn { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 12px; border-radius: 6px; font-size: 0.85em; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
         .toolbar-btn:hover { background: #30363d; border-color: #8b949e; }
+        .toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .toolbar-btn.icon-only { padding: 6px 10px; }
+        .toolbar-btn.btn-download { background: rgba(35, 134, 54, 0.15); border-color: #238636; color: #3fb950; }
+        .toolbar-btn.btn-download:hover { background: rgba(35, 134, 54, 0.25); }
+        .toolbar-btn.btn-download:disabled { background: #21262d; border-color: #30363d; color: #484f58; }
+        .toolbar-btn.btn-delete { background: rgba(248, 81, 73, 0.1); border-color: rgba(248, 81, 73, 0.4); color: #f85149; }
+        .toolbar-btn.btn-delete:hover { background: rgba(248, 81, 73, 0.2); }
+        .toolbar-btn.btn-delete:disabled { background: #21262d; border-color: #30363d; color: #484f58; }
         .perm-link:hover { text-decoration: underline; }
+        .selection-info { color: #58a6ff; font-size: 0.85em; margin-left: auto; background: rgba(88, 166, 255, 0.1); padding: 4px 10px; border-radius: 4px; }
+        
+        /* Checkbox */
+        .checkbox-cell { width: 36px; text-align: center; }
+        .checkbox-cell input[type="checkbox"] { width: 16px; height: 16px; accent-color: #58a6ff; cursor: pointer; border-radius: 4px; }
+        
+        /* Action buttons row */
+        .action-row { display: flex; gap: 6px; align-items: center; }
+        .action-divider { width: 1px; height: 20px; background: #30363d; margin: 0 6px; }
+        
+        /* Action button in table */
+        .action-btn { background: transparent; border: 1px solid transparent; color: #8b949e; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; cursor: pointer; transition: all 0.15s; }
+        .action-btn:hover { background: #21262d; border-color: #30363d; color: #c9d1d9; }
+        .action-btn.btn-download-row:hover { color: #3fb950; border-color: #238636; }
         
         /* Modal */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); z-index: 2000; display: none; justify-content: center; align-items: center; }
@@ -436,6 +367,8 @@
         .modal-btn-cancel:hover { background: #30363d; }
         .modal-btn-primary { background: #238636; border: 1px solid #2ea043; color: #fff; }
         .modal-btn-primary:hover { background: #2ea043; }
+        .modal-btn-danger { background: #da3633; border: 1px solid #f85149; color: #fff; }
+        .modal-btn-danger:hover { background: #f85149; }
         
         /* Upload */
         .upload-zone { border: 2px dashed #30363d; border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; transition: all 0.2s; }
@@ -447,6 +380,11 @@
         .perm-check { display: flex; flex-direction: column; align-items: center; padding: 10px; background: #21262d; border-radius: 6px; }
         .perm-check label { font-size: 0.8em; color: #8b949e; margin-bottom: 4px; }
         .perm-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: #58a6ff; }
+        
+        /* Confirm delete list */
+        .delete-list { max-height: 200px; overflow-y: auto; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; margin: 10px 0; }
+        .delete-list-item { padding: 6px 8px; font-family: monospace; font-size: 0.85em; border-bottom: 1px solid #21262d; }
+        .delete-list-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -527,17 +465,17 @@ let currentPath = '';
 let currentFileData = null;
 let currentTab = 'files';
 let monitorTimer = null;
-
-// ── Tab Switching ─────────────────────────────────────
+let currentDirPath = '';
+let currentDirWritable = false;
+let currentDirCanDelete = false;
+let selectedItems = new Set();
 
 function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
     document.getElementById('tabMonitor').classList.toggle('active', tab === 'monitor');
-
     const sf = document.getElementById('sectionFiles');
     const sm = document.getElementById('sectionMonitor');
-
     if (tab === 'files') {
         sf.classList.remove('section-hidden');
         sm.classList.add('section-hidden');
@@ -550,9 +488,6 @@ function switchTab(tab) {
     }
 }
 
-// ── Auth ──────────────────────────────────────────────
-
-// 从URL恢复路径
 function initFromUrl() {
     if (location.hash && location.hash.length > 1) {
         const path = decodeURIComponent(location.hash.slice(1));
@@ -562,7 +497,6 @@ function initFromUrl() {
     return false;
 }
 
-// 监听浏览器后退/前进
 window.addEventListener('popstate', (event) => {
     if (event.state && event.state.path) {
         document.getElementById('pathInput').value = event.state.path;
@@ -570,12 +504,12 @@ window.addEventListener('popstate', (event) => {
     }
 });
 
-// 不更新历史的加载（用于popstate回调）
 async function loadPathWithoutPush() {
     const raw = document.getElementById('pathInput').value.trim();
     if (!raw) return;
     showLoading();
     currentPath = raw;
+    selectedItems.clear();
     buildBreadcrumb(raw);
     try {
         const resp = await fetch('/api/file?path=' + encodeURIComponent(raw));
@@ -610,7 +544,6 @@ function hideLogin() {
     document.getElementById('loginOverlay').classList.remove('visible');
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginError').classList.remove('visible');
-    // 从URL恢复路径
     if (initFromUrl()) loadPathWithoutPush();
 }
 
@@ -643,8 +576,6 @@ async function doLogout() {
     await fetch('/api/logout', { method: 'POST' });
     showLogin();
 }
-
-// ── File Viewer ───────────────────────────────────────
 
 function setPath(p) {
     if (currentTab !== 'files') switchTab('files');
@@ -698,6 +629,7 @@ async function loadPath() {
     if (!raw) return;
     showLoading();
     currentPath = raw;
+    selectedItems.clear();
     buildBreadcrumb(raw);
     try {
         const resp = await fetch('/api/file?path=' + encodeURIComponent(raw));
@@ -725,40 +657,197 @@ function showError(status, msg, path) {
         </div>`;
 }
 
+// ── Selection Management ───────────────────────────────────
+
+function toggleSelectAll() {
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+        const path = cb.dataset.path;
+        if (!allChecked) selectedItems.add(path);
+        else selectedItems.delete(path);
+    });
+    updateSelectionInfo();
+}
+
+function toggleItem(path, checked) {
+    if (checked) selectedItems.add(path);
+    else selectedItems.delete(path);
+    updateSelectionInfo();
+}
+
+function updateSelectionInfo() {
+    const info = document.getElementById('selectionInfo');
+    const downloadBtn = document.getElementById('downloadSelectedBtn');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    if (info) info.textContent = selectedItems.size > 0 ? `已选 ${selectedItems.size} 项` : '';
+    if (downloadBtn) downloadBtn.disabled = selectedItems.size === 0;
+    if (deleteBtn) deleteBtn.disabled = selectedItems.size === 0;
+}
+
+// ── Download Functions ───────────────────────────────────
+
+function downloadFile(path) {
+    const link = document.createElement('a');
+    link.href = '/api/file/download?path=' + encodeURIComponent(path);
+    link.click();
+}
+
+async function downloadSelected() {
+    if (selectedItems.size === 0) return;
+    const paths = Array.from(selectedItems);
+    if (paths.length === 1) {
+        downloadFile(paths[0]);
+        return;
+    }
+    showNotification('正在打包...', 'info');
+    try {
+        const resp = await fetch('/api/file/download/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths })
+        });
+        if (!resp.ok) {
+            const err = await resp.json();
+            showNotification(err.error || '下载失败', 'error');
+            return;
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'download.zip';
+        link.click();
+        URL.revokeObjectURL(url);
+        showNotification('下载完成', 'success');
+    } catch (e) {
+        showNotification('下载失败: ' + e.message, 'error');
+    }
+}
+
+// ── Delete Functions ───────────────────────────────────
+
+function showDeleteModal(paths) {
+    const pathList = paths.map(p => `<div class="delete-list-item">${escHtml(p)}</div>`).join('');
+    document.getElementById('modalTitle').textContent = '确认删除';
+    document.getElementById('modalContent').innerHTML = `
+        <p style="color:#f85149;margin-bottom:10px">⚠️ 此操作不可撤销！</p>
+        <p style="color:#8b949e;margin-bottom:10px">以下 ${paths.length} 项将被删除：</p>
+        <div class="delete-list">${pathList}</div>
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn-cancel" onclick="closeModal()">取消</button>
+            <button class="modal-btn modal-btn-danger" onclick="doDelete()">确认删除</button>
+        </div>
+    `;
+    openModal();
+}
+
+async function doDelete() {
+    const paths = Array.from(selectedItems);
+    if (paths.length === 0) return;
+    try {
+        const resp = await fetch('/api/file/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths })
+        });
+        const result = await resp.json();
+        if (resp.ok) {
+            closeModal();
+            showNotification(result.message || '删除成功', 'success');
+            selectedItems.clear();
+            document.getElementById('pathInput').value = currentDirPath;
+            loadPathWithoutPush();
+        } else {
+            showNotification(result.error || '删除失败', 'error');
+        }
+    } catch (e) {
+        showNotification('删除失败: ' + e.message, 'error');
+    }
+}
+
+function deleteSelected() {
+    if (selectedItems.size === 0) return;
+    showDeleteModal(Array.from(selectedItems));
+}
+
+// ── Render Directory ───────────────────────────────────
+
 function renderDir(data) {
     const entries = data.entries;
-    const canWrite = data.folder_permissions && data.folder_permissions.write;
+    const folderPerms = data.folder_permissions || {};
+    const canWrite = folderPerms.write;
+    const canDelete = folderPerms.delete;
+    
     currentDirPath = data.path;
     currentDirWritable = canWrite;
+    currentDirCanDelete = canDelete;
+    selectedItems.clear();
     
     // 工具栏
-    const toolbarHtml = canWrite ? `
-    <div class="dir-toolbar">
-        <button class="toolbar-btn" onclick="showCreateModal('file')">📄 新建文件</button>
-        <button class="toolbar-btn" onclick="showCreateModal('directory')">📁 新建文件夹</button>
-        <button class="toolbar-btn" onclick="showUploadModal()">⬆️ 上传文件</button>
-    </div>` : '';
+    let toolbarHtml = '<div class="dir-toolbar">';
+    
+    // 左侧：基本操作
+    toolbarHtml += '<div class="action-row">';
+    if (canWrite) {
+        toolbarHtml += `<button class="toolbar-btn" onclick="showCreateModal('file')">新建文件</button>`;
+        toolbarHtml += `<button class="toolbar-btn" onclick="showCreateModal('directory')">新建文件夹</button>`;
+        toolbarHtml += `<button class="toolbar-btn" onclick="showUploadModal()">上传</button>`;
+    }
+    toolbarHtml += '</div>';
+    
+    // 分隔线
+    if (entries.length > 0) {
+        toolbarHtml += '<div class="action-divider"></div>';
+        
+        // 中间：选择操作
+        toolbarHtml += '<div class="action-row">';
+        toolbarHtml += `<button class="toolbar-btn" onclick="toggleSelectAll()" title="全选/取消全选">全选</button>`;
+        toolbarHtml += `<button class="toolbar-btn btn-download" id="downloadSelectedBtn" onclick="downloadSelected()" disabled>下载选中</button>`;
+        if (canDelete) {
+            toolbarHtml += `<button class="toolbar-btn btn-delete" id="deleteSelectedBtn" onclick="deleteSelected()" disabled>删除</button>`;
+        }
+        toolbarHtml += '</div>';
+    }
+    
+    // 右侧：选择信息
+    if (entries.length > 0) {
+        toolbarHtml += `<span class="selection-info" id="selectionInfo"></span>`;
+    }
+    toolbarHtml += '</div>';
     
     if (entries.length === 0) {
         document.getElementById('contentArea').innerHTML = toolbarHtml + `<div class="state-box"><div class="state-icon">📁</div><div class="state-title">空目录</div><div class="state-msg">${escHtml(data.path)}</div></div>`;
         return;
     }
+    
     const rows = entries.map(e => {
         const isDir = e.type === 'dir';
         const fullPath = data.path.replace(/\/$/, '') + '/' + e.name;
         const icon = isDir ? '📁' : getFileIcon(e.name);
         const nameClass = isDir ? 'dir-name' : 'file-name';
-        // 权限信息
         const perms = e.permissions || {};
         const modeStr = perms.mode || (isDir ? 'drwxr-xr-x' : '-rw-r--r--');
         const octalStr = perms.octal || (isDir ? '0o755' : '0o644');
         const owner = perms.owner || '-';
-        const group = perms.group || '-';
-        // 权限可点击
+        
         const permDisplay = `<span class="perm-link" style="font-family:monospace;font-size:0.82em;cursor:pointer;color:#58a6ff" onclick="showChmodModal('${fullPath.replace(/'/g, "\\'")}', '${octalStr}', '${escHtml(e.name)}')">${escHtml(modeStr)}</span>`;
-        return `<tr><td><span class="dir-icon">${icon}</span><span class="${nameClass}" onclick="setPath('${fullPath.replace(/'/g, "\\'")}')">${escHtml(e.name)}</span></td><td class="file-size">${isDir ? '-' : formatSize(e.size)}</td><td style="color:#484f58;font-size:0.8em">${isDir ? 'directory' : 'file'}</td><td style="font-family:monospace;font-size:0.8em">${permDisplay}</td><td style="color:#8b949e;font-size:0.8em">${escHtml(owner)}</td></tr>`;
+        
+        const actions = `<button class="action-btn btn-download-row" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')" title="下载">⬇</button>`;
+        
+        return `<tr>
+            <td class="checkbox-cell"><input type="checkbox" class="item-checkbox" data-path="${escHtml(fullPath)}" onchange="toggleItem('${fullPath.replace(/'/g, "\\'")}', this.checked)"></td>
+            <td><span class="dir-icon">${icon}</span><span class="${nameClass}" onclick="setPath('${fullPath.replace(/'/g, "\\'")}')">${escHtml(e.name)}</span></td>
+            <td class="file-size">${isDir ? '-' : formatSize(e.size)}</td>
+            <td style="color:#484f58;font-size:0.8em">${isDir ? 'dir' : 'file'}</td>
+            <td style="font-family:monospace;font-size:0.8em">${permDisplay}</td>
+            <td style="color:#8b949e;font-size:0.8em">${escHtml(owner)}</td>
+            <td>${actions}</td>
+        </tr>`;
     }).join('');
-    document.getElementById('contentArea').innerHTML = toolbarHtml + `<table class="dir-table"><thead><tr><th>名称</th><th style="text-align:right">大小</th><th>类型</th><th>权限</th><th>所有者</th></tr></thead><tbody>${rows}</tbody></table>`;
+    
+    document.getElementById('contentArea').innerHTML = toolbarHtml + `<table class="dir-table"><thead><tr><th class="checkbox-cell"></th><th>名称</th><th style="text-align:right">大小</th><th>类型</th><th>权限</th><th>所有者</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function isMarkdown(path) { return /\.(md|markdown|mdown|mkd)$/i.test(path); }
@@ -769,22 +858,22 @@ function renderFile(data, viewMode) {
     const isMd = isMarkdown(data.path);
     if (viewMode === undefined) viewMode = isMd ? 'preview' : 'source';
     
-    // 检查是否有写入权限
     const canWrite = data.folder_permissions && data.folder_permissions.write;
-    
-    // 权限信息显示
     const perms = data.permissions || {};
-    const permInfo = perms.mode ? `<span title="Owner: ${perms.owner || '-'}, Group: ${perms.group || '-'}">🔒 ${perms.mode}</span>` : '';
+    const permInfo = perms.mode ? `<span title="Owner: ${perms.owner || '-'}">🔒 ${perms.mode}</span>` : '';
     
-    // 编辑按钮
-    const editBtn = canWrite ? `<button class="toggle-btn" onclick="enterEditMode()">✏️ 编辑</button>` : '';
+    const downloadBtn = `<button class="toggle-btn" onclick="downloadFile('${data.path.replace(/'/g, "\\'")}')">下载</button>`;
+    const editBtn = canWrite ? `<button class="toggle-btn" onclick="enterEditMode()">编辑</button>` : '';
     
-    const toggleHtml = `<div class="view-toggle">${editBtn}${isMd ? `<button class="toggle-btn ${viewMode === 'preview' ? 'active' : ''}" onclick="renderFile(currentFileData, 'preview')">预览</button><button class="toggle-btn ${viewMode === 'source' ? 'active' : ''}" onclick="renderFile(currentFileData, 'source')">源码</button>` : ''}</div>`;
+    const toggleHtml = `<div class="view-toggle">${downloadBtn}${editBtn}${isMd ? `<button class="toggle-btn ${viewMode === 'preview' ? 'active' : ''}" onclick="renderFile(currentFileData, 'preview')">预览</button><button class="toggle-btn ${viewMode === 'source' ? 'active' : ''}" onclick="renderFile(currentFileData, 'source')">源码</button>` : ''}</div>`;
     
-    const headerHtml = `<div class="file-header"><span style="font-family:monospace;color:#c9d1d9">${escHtml(data.path)}</span><div class="file-meta">${toggleHtml}<span>📄 ${lines.length} 行</span><span>💾 ${formatSize(data.size)}</span><span>🔤 ${escHtml(data.encoding)}</span>${permInfo}</div></div>`;
+    const headerHtml = `<div class="file-header"><span style="font-family:monospace;color:#c9d1d9">${escHtml(data.path)}</span><div class="file-meta">${toggleHtml}<span>📄 ${lines.length} 行</span><span>💾 ${formatSize(data.size)}</span>${permInfo}</div></div>`;
     
     if (isMd && viewMode === 'preview') {
-        marked.setOptions({ breaks: true, gfm: true });
+        const renderer = new marked.Renderer();
+        const origTable = renderer.table;
+        renderer.table = function(header, body) { return '<div class="table-wrap">' + origTable.call(this, header, body) + '</div>'; };
+        marked.setOptions({ breaks: true, gfm: true, renderer });
         document.getElementById('contentArea').innerHTML = headerHtml + `<div class="md-body">${marked.parse(data.content)}</div>`;
     } else {
         const lineHtml = lines.map((line, i) => `<div class="line"><span class="line-num">${i + 1}</span><span class="line-content">${escHtml(line)}</span></div>`).join('');
@@ -792,241 +881,150 @@ function renderFile(data, viewMode) {
     }
 }
 
-// 编辑模式相关函数
+// ── Edit Mode ───────────────────────────────────
+
 let isEditMode = false;
-let originalContent = '';
 
 function enterEditMode() {
     if (!currentFileData) return;
     isEditMode = true;
-    originalContent = currentFileData.content;
-    
-    const canWrite = currentFileData.folder_permissions && currentFileData.folder_permissions.write;
     const perms = currentFileData.permissions || {};
-    const permInfo = perms.mode ? `<span title="Owner: ${perms.owner || '-'}">🔒 ${perms.mode}</span>` : '';
+    const permInfo = perms.mode ? `<span>🔒 ${perms.mode}</span>` : '';
     
     const headerHtml = `<div class="file-header">
         <span style="font-family:monospace;color:#c9d1d9">${escHtml(currentFileData.path)}</span>
         <div class="file-meta">
             <div class="view-toggle">
-                <button class="toggle-btn" onclick="cancelEdit()">❌ 取消</button>
-                <button class="toggle-btn active" style="background:#238636;border-color:#2ea043" onclick="saveFile()">💾 保存</button>
+                <button class="toggle-btn" onclick="cancelEdit()">取消</button>
+                <button class="toggle-btn active" style="background:#238636;border-color:#2ea043" onclick="saveFile()">保存</button>
             </div>
-            <span>📝 编辑模式</span>
+            <span>编辑模式</span>
             ${permInfo}
         </div>
     </div>`;
     
-    const textareaHtml = `<textarea class="edit-textarea" id="editTextarea">${escHtml(currentFileData.content)}</textarea>`;
-    document.getElementById('contentArea').innerHTML = headerHtml + textareaHtml;
+    document.getElementById('contentArea').innerHTML = headerHtml + `<textarea class="edit-textarea" id="editTextarea">${escHtml(currentFileData.content)}</textarea>`;
 }
 
 function cancelEdit() {
     isEditMode = false;
-    if (currentFileData) {
-        renderFile(currentFileData, 'source');
-    }
+    if (currentFileData) renderFile(currentFileData, 'source');
 }
 
 async function saveFile() {
     if (!currentFileData) return;
-    
     const textarea = document.getElementById('editTextarea');
     if (!textarea) return;
-    
     const newContent = textarea.value;
-    
-    // 显示保存中状态
     const saveBtn = document.querySelector('.toggle-btn[onclick="saveFile()"]');
-    if (saveBtn) {
-        saveBtn.textContent = '⏳ 保存中...';
-        saveBtn.disabled = true;
-    }
-    
+    if (saveBtn) { saveBtn.textContent = '保存中...'; saveBtn.disabled = true; }
     try {
         const resp = await fetch('/api/file/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                path: currentFileData.path,
-                content: newContent
-            })
+            body: JSON.stringify({ path: currentFileData.path, content: newContent })
         });
-        
         const result = await resp.json();
-        
         if (resp.ok) {
-            // 更新当前文件数据
             currentFileData.content = newContent;
             currentFileData.size = result.size;
             isEditMode = false;
             renderFile(currentFileData, 'source');
-            showNotification('✅ 文件保存成功', 'success');
+            showNotification('保存成功', 'success');
         } else {
-            showNotification('❌ 保存失败: ' + (result.error || 'Unknown error'), 'error');
-            // 恢复按钮状态
-            if (saveBtn) {
-                saveBtn.textContent = '💾 保存';
-                saveBtn.disabled = false;
-            }
+            showNotification(result.error || '保存失败', 'error');
+            if (saveBtn) { saveBtn.textContent = '保存'; saveBtn.disabled = false; }
         }
     } catch (e) {
-        showNotification('❌ 保存失败: ' + e.message, 'error');
-        if (saveBtn) {
-            saveBtn.textContent = '💾 保存';
-            saveBtn.disabled = false;
-        }
+        showNotification('保存失败: ' + e.message, 'error');
+        if (saveBtn) { saveBtn.textContent = '保存'; saveBtn.disabled = false; }
     }
 }
 
 function showNotification(msg, type) {
     const colors = {
-        success: 'background:#238636;border-color:#2ea043',
-        error: 'background:#da3633;border-color:#f85149',
-        info: 'background:#1f6feb;border-color:#388bfd'
+        success: 'background:#238636;border:1px solid #2ea043',
+        error: 'background:#da3633;border:1px solid #f85149',
+        info: 'background:#1f6feb;border:1px solid #388bfd'
     };
     const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.style.cssText = `position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;color:#fff;font-size:0.9em;z-index:1000;${colors[type] || colors.info}`;
+    notification.style.cssText = `position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;color:#fff;font-size:0.9em;z-index:3000;${colors[type] || colors.info}`;
     notification.textContent = msg;
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 3000);
 }
 
-// 当前目录状态
-let currentDirPath = '';
-let currentDirWritable = false;
-let chmodTargetPath = '';
-let chmodTargetName = '';
+// ── Modal ───────────────────────────────────
 
-// ── 模态框 ──
-function openModal() {
-    document.getElementById('modalOverlay').classList.add('visible');
-}
+function openModal() { document.getElementById('modalOverlay').classList.add('visible'); }
+function closeModal(e) { if (e && e.target !== e.currentTarget) return; document.getElementById('modalOverlay').classList.remove('visible'); }
 
-function closeModal(e) {
-    if (e && e.target !== e.currentTarget) return;
-    document.getElementById('modalOverlay').classList.remove('visible');
-}
+// ── Create Modal ───────────────────────────────────
 
-// ── 新建文件/文件夹 ──
 function showCreateModal(type) {
-    const title = type === 'file' ? '新建文件' : '新建文件夹';
-    document.getElementById('modalTitle').textContent = title;
+    const typeLabel = type === 'file' ? '文件' : '文件夹';
+    document.getElementById('modalTitle').textContent = '新建' + typeLabel;
     document.getElementById('modalContent').innerHTML = `
-        <div class="modal-field">
-            <label>名称</label>
-            <input type="text" id="createName" placeholder="${type === 'file' ? 'filename.txt' : 'folder_name'}" autofocus />
-        </div>
-        <div class="modal-field">
-            <label>位置</label>
-            <input type="text" id="createParent" value="${escHtml(currentDirPath)}" readonly />
-        </div>
+        <div class="modal-field"><label>名称</label><input type="text" id="createName" placeholder="输入${typeLabel}名称" autocomplete="off" /></div>
+        <div class="modal-field"><label>位置</label><input type="text" value="${escHtml(currentDirPath)}" readonly /></div>
         <div class="modal-actions">
             <button class="modal-btn modal-btn-cancel" onclick="closeModal()">取消</button>
             <button class="modal-btn modal-btn-primary" onclick="doCreate('${type}')">创建</button>
         </div>
     `;
     openModal();
-    setTimeout(() => document.getElementById('createName').focus(), 100);
+    setTimeout(() => document.getElementById('createName').focus(), 50);
 }
 
 async function doCreate(type) {
     const name = document.getElementById('createName').value.trim();
-    const parent = document.getElementById('createParent').value;
-    
-    if (!name) {
-        showNotification('请输入名称', 'error');
-        return;
-    }
-    
+    if (!name) { showNotification('请输入名称', 'error'); return; }
     try {
         const resp = await fetch('/api/file/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ parent, name, type })
+            body: JSON.stringify({ parent: currentDirPath, name: name, type: type })
         });
-        
         const result = await resp.json();
-        
         if (resp.ok) {
             closeModal();
-            showNotification(`✅ ${type === 'file' ? '文件' : '文件夹'}创建成功`, 'success');
-            // 刷新当前目录
+            showNotification('创建成功', 'success');
             document.getElementById('pathInput').value = currentDirPath;
             loadPathWithoutPush();
-        } else {
-            showNotification('❌ ' + (result.error || '创建失败'), 'error');
-        }
-    } catch (e) {
-        showNotification('❌ 创建失败: ' + e.message, 'error');
-    }
+        } else { showNotification(result.error || '创建失败', 'error'); }
+    } catch (e) { showNotification('创建失败: ' + e.message, 'error'); }
 }
 
-// ── 修改权限 ──
+// ── Chmod Modal ───────────────────────────────────
+
+let chmodTargetPath = '';
+
 function showChmodModal(path, octal, name) {
-    if (!currentDirWritable) {
-        showNotification('❌ 当前目录无写入权限', 'error');
-        return;
-    }
-    
     chmodTargetPath = path;
-    chmodTargetName = name;
-    
-    // 解析当前权限
-    const mode = parseInt(octal, 8);
-    const u = (mode >> 6) & 7;
-    const g = (mode >> 3) & 7;
-    const o = mode & 7;
-    
-    document.getElementById('modalTitle').textContent = '修改权限: ' + name;
+    const mode = parseInt(octal.replace('0o', ''), 8);
+    document.getElementById('modalTitle').textContent = '修改权限 - ' + name;
     document.getElementById('modalContent').innerHTML = `
+        <div class="modal-field"><label>路径</label><input type="text" value="${escHtml(path)}" readonly /></div>
         <div class="perm-grid">
-            <div class="perm-check">
-                <label>所有者</label>
-                <div style="display:flex;gap:8px">
-                    <label style="font-size:0.75em">读<input type="checkbox" id="ur" ${u & 4 ? 'checked' : ''}></label>
-                    <label style="font-size:0.75em">写<input type="checkbox" id="uw" ${u & 2 ? 'checked' : ''}></label>
-                    <label style="font-size:0.75em">执<input type="checkbox" id="ux" ${u & 1 ? 'checked' : ''}></label>
-                </div>
-            </div>
-            <div class="perm-check">
-                <label>组</label>
-                <div style="display:flex;gap:8px">
-                    <label style="font-size:0.75em">读<input type="checkbox" id="gr" ${g & 4 ? 'checked' : ''}></label>
-                    <label style="font-size:0.75em">写<input type="checkbox" id="gw" ${g & 2 ? 'checked' : ''}></label>
-                    <label style="font-size:0.75em">执<input type="checkbox" id="gx" ${g & 1 ? 'checked' : ''}></label>
-                </div>
-            </div>
-            <div class="perm-check">
-                <label>其他</label>
-                <div style="display:flex;gap:8px">
-                    <label style="font-size:0.75em">读<input type="checkbox" id="or" ${o & 4 ? 'checked' : ''}></label>
-                    <label style="font-size:0.75em">写<input type="checkbox" id="ow" ${o & 2 ? 'checked' : ''}></label>
-                    <label style="font-size:0.75em">执<input type="checkbox" id="ox" ${o & 1 ? 'checked' : ''}></label>
-                </div>
-            </div>
+            <div class="perm-check"><label>所有者读取</label><input type="checkbox" id="ur" ${mode & 0o400 ? 'checked' : ''}></div>
+            <div class="perm-check"><label>所有者写入</label><input type="checkbox" id="uw" ${mode & 0o200 ? 'checked' : ''}></div>
+            <div class="perm-check"><label>所有者执行</label><input type="checkbox" id="ux" ${mode & 0o100 ? 'checked' : ''}></div>
+            <div class="perm-check"><label>组读取</label><input type="checkbox" id="gr" ${mode & 0o040 ? 'checked' : ''}></div>
+            <div class="perm-check"><label>组写入</label><input type="checkbox" id="gw" ${mode & 0o020 ? 'checked' : ''}></div>
+            <div class="perm-check"><label>组执行</label><input type="checkbox" id="gx" ${mode & 0o010 ? 'checked' : ''}></div>
+            <div class="perm-check"><label>其他读取</label><input type="checkbox" id="or" ${mode & 0o004 ? 'checked' : ''}></div>
+            <div class="perm-check"><label>其他写入</label><input type="checkbox" id="ow" ${mode & 0o002 ? 'checked' : ''}></div>
+            <div class="perm-check"><label>其他执行</label><input type="checkbox" id="ox" ${mode & 0o001 ? 'checked' : ''}></div>
         </div>
-        <div class="modal-field">
-            <label>八进制</label>
-            <input type="text" id="chmodOctal" value="${octal}" readonly style="font-family:monospace" />
-        </div>
-        <div class="modal-field">
-            <label>路径</label>
-            <input type="text" value="${escHtml(path)}" readonly />
-        </div>
+        <div class="modal-field"><label>八进制值</label><input type="text" id="chmodOctal" value="${octal}" readonly style="font-family:monospace;text-align:center;font-size:1.2em" /></div>
         <div class="modal-actions">
             <button class="modal-btn modal-btn-cancel" onclick="closeModal()">取消</button>
             <button class="modal-btn modal-btn-primary" onclick="doChmod()">修改</button>
         </div>
     `;
-    
-    // 绑定复选框事件，实时更新八进制值
-    const cbs = ['ur','uw','ux','gr','gw','gx','or','ow','ox'];
-    cbs.forEach(id => {
+    ['ur','uw','ux','gr','gw','gx','or','ow','ox'].forEach(id => {
         document.getElementById(id).addEventListener('change', updateOctalDisplay);
     });
-    
     openModal();
 }
 
@@ -1039,38 +1037,30 @@ function updateOctalDisplay() {
 
 async function doChmod() {
     const mode = document.getElementById('chmodOctal').value;
-    
     try {
         const resp = await fetch('/api/file/chmod', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ path: chmodTargetPath, mode })
         });
-        
         const result = await resp.json();
-        
         if (resp.ok) {
             closeModal();
-            showNotification('✅ 权限修改成功', 'success');
-            // 刷新当前目录
+            showNotification('权限修改成功', 'success');
             document.getElementById('pathInput').value = currentDirPath;
             loadPathWithoutPush();
-        } else {
-            showNotification('❌ ' + (result.error || '修改失败'), 'error');
-        }
-    } catch (e) {
-        showNotification('❌ 修改失败: ' + e.message, 'error');
-    }
+        } else { showNotification(result.error || '修改失败', 'error'); }
+    } catch (e) { showNotification('修改失败: ' + e.message, 'error'); }
 }
 
-// ── 上传文件 ──
+// ── Upload ───────────────────────────────────
+
+let selectedFilesList = [];
+
 function showUploadModal() {
     document.getElementById('modalTitle').textContent = '上传文件';
     document.getElementById('modalContent').innerHTML = `
-        <div class="modal-field">
-            <label>目标目录</label>
-            <input type="text" value="${escHtml(currentDirPath)}" readonly />
-        </div>
+        <div class="modal-field"><label>目标目录</label><input type="text" value="${escHtml(currentDirPath)}" readonly /></div>
         <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
             <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)">
             <div style="font-size:2em;margin-bottom:10px">📁</div>
@@ -1082,8 +1072,6 @@ function showUploadModal() {
             <button class="modal-btn modal-btn-primary" onclick="doUpload()">上传</button>
         </div>
     `;
-    
-    // 拖拽支持
     const zone = document.getElementById('uploadZone');
     zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
@@ -1093,93 +1081,46 @@ function showUploadModal() {
         document.getElementById('fileInput').files = e.dataTransfer.files;
         handleFileSelect({ target: { files: e.dataTransfer.files } });
     });
-    
     openModal();
 }
-
-let selectedFilesList = [];
 
 function handleFileSelect(event) {
     selectedFilesList = Array.from(event.target.files);
     const names = selectedFilesList.map(f => f.name).join(', ');
-    document.getElementById('selectedFiles').textContent = selectedFilesList.length > 0 
-        ? `已选择 ${selectedFilesList.length} 个文件: ${names}` 
-        : '';
+    document.getElementById('selectedFiles').textContent = selectedFilesList.length > 0 ? `已选择 ${selectedFilesList.length} 个文件: ${names}` : '';
 }
 
 async function doUpload() {
-    if (selectedFilesList.length === 0) {
-        showNotification('请选择文件', 'error');
-        return;
-    }
-    
-    let successCount = 0;
-    let errorCount = 0;
-    
+    if (selectedFilesList.length === 0) { showNotification('请选择文件', 'error'); return; }
+    let successCount = 0, errorCount = 0;
     for (const file of selectedFilesList) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('path', currentDirPath);
-        
         try {
-            const resp = await fetch('/api/file/upload', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await resp.json();
-            
-            if (resp.ok) {
-                successCount++;
-            } else {
-                errorCount++;
-                console.error('Upload error:', result.error);
-            }
-        } catch (e) {
-            errorCount++;
-            console.error('Upload error:', e.message);
-        }
+            const resp = await fetch('/api/file/upload', { method: 'POST', body: formData });
+            if (resp.ok) successCount++; else errorCount++;
+        } catch (e) { errorCount++; }
     }
-    
     closeModal();
-    
-    if (successCount > 0) {
-        showNotification(`✅ 成功上传 ${successCount} 个文件`, 'success');
-        // 刷新当前目录
-        document.getElementById('pathInput').value = currentDirPath;
-        loadPathWithoutPush();
-    }
-    
-    if (errorCount > 0) {
-        showNotification(`⚠️ ${errorCount} 个文件上传失败`, 'error');
-    }
+    if (successCount > 0) { showNotification(`成功上传 ${successCount} 个文件`, 'success'); document.getElementById('pathInput').value = currentDirPath; loadPathWithoutPush(); }
+    if (errorCount > 0) showNotification(`${errorCount} 个文件上传失败`, 'error');
 }
 
 function getFileIcon(name) {
     const ext = name.split('.').pop().toLowerCase();
-    const map = { js:'📜',ts:'📜',py:'🐍',sh:'⚙️',bash:'⚙️',html:'🌐',htm:'🌐',css:'🎨',json:'📋',yaml:'📋',yml:'📋',toml:'📋',ini:'📋',conf:'📋',cfg:'📋',txt:'📝',md:'📑',markdown:'📑',log:'📃',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',svg:'🖼️',webp:'🖼️',zip:'📦',tar:'📦',gz:'📦',bz2:'📦',pdf:'📕',doc:'📘',docx:'📘',key:'🔑',pem:'🔑',crt:'🔑' };
+    const map = { js:'📜',ts:'📜',py:'🐍',sh:'⚙️',html:'🌐',css:'🎨',json:'📋',yaml:'📋',yml:'📋',md:'📑',txt:'📝',log:'📃',zip:'📦',tar:'📦',gz:'📦',pdf:'📕',png:'🖼️',jpg:'🖼️',gif:'🖼️',svg:'🖼️',key:'🔑',pem:'🔑' };
     return map[ext] || '📄';
 }
 
 // ── System Monitor ────────────────────────────────────
 
-function startMonitor() {
-    if (monitorTimer) return;
-    fetchSystemInfo();
-    monitorTimer = setInterval(fetchSystemInfo, 3000);
-}
+function startMonitor() { if (monitorTimer) return; fetchSystemInfo(); monitorTimer = setInterval(fetchSystemInfo, 3000); }
+function stopMonitor() { if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; } }
 
-function stopMonitor() {
-    if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; }
-}
-
-// 页面不可见时停止刷新，节省资源
 document.addEventListener('visibilitychange', () => {
-    if (document.hidden && currentTab === 'monitor') {
-        stopMonitor();
-    } else if (!document.hidden && currentTab === 'monitor') {
-        startMonitor();
-    }
+    if (document.hidden && currentTab === 'monitor') stopMonitor();
+    else if (!document.hidden && currentTab === 'monitor') startMonitor();
 });
 
 async function fetchSystemInfo() {
@@ -1193,112 +1134,23 @@ async function fetchSystemInfo() {
     }
 }
 
-function pbarClass(pct) {
-    if (pct < 60) return 'pbar-green';
-    if (pct < 85) return 'pbar-yellow';
-    return 'pbar-red';
-}
+function pbarClass(pct) { if (pct < 60) return 'pbar-green'; if (pct < 85) return 'pbar-yellow'; return 'pbar-red'; }
 
 function renderMonitor(d) {
-    const cpu = d.cpu || {};
-    const mem = d.memory || {};
-    const net = d.network || {};
-    const load = d.load || {};
-    const procs = d.processes || [];
-    const disks = d.disks || [];
-
+    const cpu = d.cpu || {}, mem = d.memory || {}, net = d.network || {}, load = d.load || {}, procs = d.processes || [], disks = d.disks || [];
     const now = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-
-    let html = `
-    <div class="mon-header">
-        <h2>${escHtml(d.hostname || 'Server')}</h2>
-        <div class="mon-meta">
-            <span class="mon-live"><span class="mon-live-dot"></span> 实时</span>
-            <span>更新于 ${now}</span>
-            <span>每 3 秒刷新</span>
-        </div>
-    </div>
-    <div class="mon-grid">`;
-
-    // ── OS Info Card ──
-    html += `
-    <div class="mon-card">
-        <div class="mon-card-title">🖥️ 系统信息</div>
-        <div class="mon-row"><span class="label">操作系统</span><span class="val">${escHtml(d.os || '')}</span></div>
-        <div class="mon-row"><span class="label">内核</span><span class="val">${escHtml(d.kernel || '')}</span></div>
-        <div class="mon-row"><span class="label">运行时间</span><span class="val">${escHtml(d.uptime || '')}</span></div>
-        ${d.temperature != null ? `<div class="mon-row"><span class="label">温度</span><span class="val">${d.temperature} &#8451;</span></div>` : ''}
-    </div>`;
-
-    // ── CPU Card ──
+    let html = `<div class="mon-header"><h2>${escHtml(d.hostname || 'Server')}</h2><div class="mon-meta"><span class="mon-live"><span class="mon-live-dot"></span> 实时</span><span>更新于 ${now}</span></div></div><div class="mon-grid">`;
+    html += `<div class="mon-card"><div class="mon-card-title">🖥️ 系统</div><div class="mon-row"><span class="label">系统</span><span class="val">${escHtml(d.os || '')}</span></div><div class="mon-row"><span class="label">内核</span><span class="val">${escHtml(d.kernel || '')}</span></div><div class="mon-row"><span class="label">运行</span><span class="val">${escHtml(d.uptime || '')}</span></div></div>`;
     const cpuPct = cpu.usage_percent || 0;
-    html += `
-    <div class="mon-card">
-        <div class="mon-card-title">⚡ CPU</div>
-        <div class="mon-big-num">${cpuPct.toFixed(1)}%</div>
-        <div class="pbar-wrap"><div class="pbar ${pbarClass(cpuPct)}" style="width:${cpuPct}%"></div></div>
-        <div class="mon-row"><span class="label">型号</span><span class="val" style="font-size:0.78em">${escHtml(cpu.model || '')}</span></div>
-        <div class="mon-row"><span class="label">核心 / 线程</span><span class="val">${cpu.physical_cores || '-'} / ${cpu.threads || '-'}</span></div>
-        <div class="mon-row"><span class="label">负载 (1/5/15m)</span><span class="val">${load['1m']?.toFixed(2)} / ${load['5m']?.toFixed(2)} / ${load['15m']?.toFixed(2)}</span></div>
-    </div>`;
-
-    // ── Memory Card ──
+    html += `<div class="mon-card"><div class="mon-card-title">⚡ CPU</div><div class="mon-big-num">${cpuPct.toFixed(1)}%</div><div class="pbar-wrap"><div class="pbar ${pbarClass(cpuPct)}" style="width:${cpuPct}%"></div></div><div class="mon-row"><span class="label">核心</span><span class="val">${cpu.physical_cores || '-'} / ${cpu.threads || '-'}</span></div><div class="mon-row"><span class="label">负载</span><span class="val">${load['1m']?.toFixed(2)} / ${load['5m']?.toFixed(2)} / ${load['15m']?.toFixed(2)}</span></div></div>`;
     const memPct = mem.usage_percent || 0;
-    html += `
-    <div class="mon-card">
-        <div class="mon-card-title">🧠 内存</div>
-        <div class="mon-big-num">${memPct.toFixed(1)}%</div>
-        <div class="pbar-wrap"><div class="pbar ${pbarClass(memPct)}" style="width:${memPct}%"></div></div>
-        <div class="mon-row"><span class="label">已使用 / 总计</span><span class="val">${formatSize(mem.used)} / ${formatSize(mem.total)}</span></div>
-        <div class="mon-row"><span class="label">可用</span><span class="val">${formatSize(mem.available)}</span></div>
-        <div class="mon-row"><span class="label">缓存 (Buffers+Cache)</span><span class="val">${formatSize((mem.buffers||0)+(mem.cached||0))}</span></div>
-        ${mem.swap_total > 0 ? `<div class="mon-row"><span class="label">Swap</span><span class="val">${formatSize(mem.swap_used)} / ${formatSize(mem.swap_total)} (${mem.swap_percent}%)</span></div>` : ''}
-    </div>`;
-
-    // ── Network Card ──
-    html += `
-    <div class="mon-card">
-        <div class="mon-card-title">🌐 网络</div>
-        <div class="net-pair">
-            <div><div class="net-rate" style="color:#4ade80">↓ ${formatRate(net.rx_rate || 0)}</div><div class="net-label">下行速率</div></div>
-            <div><div class="net-rate" style="color:#58a6ff">↑ ${formatRate(net.tx_rate || 0)}</div><div class="net-label">上行速率</div></div>
-        </div>`;
-    (net.interfaces || []).forEach(iface => {
-        html += `<div class="mon-row"><span class="label">${escHtml(iface.name)} <span style="color:#484f58">${escHtml(iface.ip)}</span></span><span class="val">↓${formatSize(iface.rx_bytes)} ↑${formatSize(iface.tx_bytes)}</span></div>`;
-    });
-    html += `</div>`;
-
-    // ── Disk Card ──
-    html += `<div class="mon-card">
-        <div class="mon-card-title">💾 磁盘</div>`;
-    disks.forEach(dk => {
-        const dkPct = dk.usage_percent || 0;
-        html += `
-        <div class="disk-item">
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-                <span class="disk-mount">${escHtml(dk.mount)}</span>
-                <span style="font-family:monospace;font-size:0.88em;color:#e6edf3">${dkPct}%</span>
-            </div>
-            <div class="disk-device">${escHtml(dk.device)}</div>
-            <div class="pbar-wrap"><div class="pbar ${pbarClass(dkPct)}" style="width:${dkPct}%"></div></div>
-            <div class="disk-detail"><span>${formatSize(dk.used)} 已用</span><span>${formatSize(dk.available)} 可用</span><span>${formatSize(dk.total)} 总计</span></div>
-        </div>`;
-    });
-    html += `</div>`;
-
-    // ── Process Card ──
-    if (procs.length > 0) {
-        html += `<div class="mon-card wide">
-            <div class="mon-card-title">📊 进程 (Top 10 by CPU)</div>
-            <table class="proc-table"><thead><tr><th>PID</th><th>用户</th><th>CPU%</th><th>内存%</th><th>命令</th></tr></thead><tbody>`;
-        procs.forEach(p => {
-            html += `<tr><td>${p.pid}</td><td>${escHtml(p.user)}</td><td>${p.cpu.toFixed(1)}</td><td>${p.mem.toFixed(1)}</td><td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.command)}</td></tr>`;
-        });
-        html += `</tbody></table></div>`;
-    }
-
-    html += `</div>`; // close mon-grid
-
+    html += `<div class="mon-card"><div class="mon-card-title">🧠 内存</div><div class="mon-big-num">${memPct.toFixed(1)}%</div><div class="pbar-wrap"><div class="pbar ${pbarClass(memPct)}" style="width:${memPct}%"></div></div><div class="mon-row"><span class="label">已用</span><span class="val">${formatSize(mem.used)} / ${formatSize(mem.total)}</span></div></div>`;
+    html += `<div class="mon-card"><div class="mon-card-title">🌐 网络</div><div class="net-pair"><div><div class="net-rate" style="color:#4ade80">↓ ${formatRate(net.rx_rate || 0)}</div><div class="net-label">下行</div></div><div><div class="net-rate" style="color:#58a6ff">↑ ${formatRate(net.tx_rate || 0)}</div><div class="net-label">上行</div></div></div></div>`;
+    html += `<div class="mon-card"><div class="mon-card-title">💾 磁盘</div>`;
+    disks.forEach(dk => { const dkPct = dk.usage_percent || 0; html += `<div class="disk-item"><div class="disk-mount">${escHtml(dk.mount)}</div><div class="pbar-wrap" style="margin:4px 0"><div class="pbar ${pbarClass(dkPct)}" style="width:${dkPct}%"></div></div><div class="disk-detail"><span>${formatSize(dk.used)}</span><span>${formatSize(dk.available)}</span></div></div>`; });
+    html += '</div>';
+    if (procs.length > 0) { html += `<div class="mon-card wide"><div class="mon-card-title">📊 进程</div><table class="proc-table"><thead><tr><th>PID</th><th>用户</th><th>CPU%</th><th>MEM%</th><th>命令</th></tr></thead><tbody>`; procs.forEach(p => { html += `<tr><td>${p.pid}</td><td>${escHtml(p.user)}</td><td>${p.cpu.toFixed(1)}</td><td>${p.mem.toFixed(1)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.command)}</td></tr>`; }); html += '</tbody></table></div>'; }
+    html += '</div>';
     document.getElementById('monitorContent').innerHTML = html;
 }
 
@@ -1308,7 +1160,8 @@ document.getElementById('pathInput').addEventListener('keydown', e => { if (e.ke
 document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 checkAuth();
 </script>
-<!-- 通用模态框 -->
+
+<!-- Modal -->
 <div id="modalOverlay" class="modal-overlay" onclick="closeModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <div class="modal-header">

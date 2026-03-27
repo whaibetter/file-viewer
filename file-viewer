@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # file-viewer — 管理文件查看器服务的启停脚本
-# 用法: file-viewer {start|stop|restart|status|enable|disable|passwd}
+# 用法: file-viewer {start|stop|restart|status|enable|disable|passwd|logs}
 
 SERVICE="file-viewer"
 BOLD='\033[1m'
@@ -132,6 +132,22 @@ cmd_passwd() {
     echo -e "  提示：已登录的 session 不受影响，下次登录时生效"
 }
 
+cmd_logs() {
+    local lines="${1:-50}"
+    local follow="${2:-}"
+    
+    if [ "$lines" = "-f" ] || [ "$lines" = "--follow" ]; then
+        echo -e "${BOLD}实时查看 file-viewer 日志 (Ctrl+C 退出)...${RESET}"
+        journalctl -u "$SERVICE" -f --no-pager
+    elif [ "$follow" = "-f" ] || [ "$follow" = "--follow" ]; then
+        echo -e "${BOLD}实时查看 file-viewer 日志 (Ctrl+C 退出)...${RESET}"
+        journalctl -u "$SERVICE" -f --no-pager
+    else
+        echo -e "${BOLD}file-viewer 最近 ${lines} 条日志：${RESET}"
+        journalctl -u "$SERVICE" -n "$lines" --no-pager
+    fi
+}
+
 cmd_help() {
     echo -e "${BOLD}用法：${RESET} file-viewer <命令>"
     echo ""
@@ -142,6 +158,12 @@ cmd_help() {
     echo -e "  ${CYAN}enable${RESET}    设置开机自启"
     echo -e "  ${CYAN}disable${RESET}   取消开机自启"
     echo -e "  ${CYAN}passwd${RESET}    修改登录密码"
+    echo -e "  ${CYAN}logs${RESET}      查看服务日志"
+    echo ""
+    echo -e "${BOLD}logs 命令用法：${RESET}"
+    echo -e "  file-viewer logs          # 查看最近 50 条日志"
+    echo -e "  file-viewer logs 100      # 查看最近 100 条日志"
+    echo -e "  file-viewer logs -f       # 实时查看日志"
 }
 
 case "${1:-}" in
@@ -152,5 +174,6 @@ case "${1:-}" in
     enable)  cmd_enable  ;;
     disable) cmd_disable ;;
     passwd)  cmd_passwd  ;;
+    logs)    shift; cmd_logs "$@" ;;
     *)       cmd_help    ;;
 esac
