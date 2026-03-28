@@ -336,9 +336,45 @@
         .selection-info { color: #58a6ff; font-size: 0.85em; margin-left: auto; background: rgba(88, 166, 255, 0.1); padding: 4px 10px; border-radius: 4px; }
         
         /* Checkbox */
-        .checkbox-cell { width: 36px; text-align: center; }
-        .checkbox-cell input[type="checkbox"] { width: 16px; height: 16px; accent-color: #58a6ff; cursor: pointer; border-radius: 4px; }
-        
+        /* Checkbox - 自定义样式 */
+        .checkbox-cell { width: 40px; text-align: center; vertical-align: middle; }
+        .checkbox-cell input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #484f58;
+            border-radius: 6px;
+            background: #21262d;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            vertical-align: middle;
+        }
+        .checkbox-cell input[type="checkbox"]:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+            transform: scale(1.05);
+        }
+        .checkbox-cell input[type="checkbox"]:checked {
+            background: linear-gradient(135deg, #1f6feb 0%, #58a6ff 100%);
+            border-color: #58a6ff;
+            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.4);
+        }
+        .checkbox-cell input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        .checkbox-cell input[type="checkbox"]:active {
+            transform: scale(0.95);
+        }
         /* Action buttons row */
         .action-row { display: flex; gap: 6px; align-items: center; }
         .action-divider { width: 1px; height: 20px; background: #30363d; margin: 0 6px; }
@@ -834,7 +870,7 @@ function renderDir(data) {
         
         const permDisplay = `<span class="perm-link" style="font-family:monospace;font-size:0.82em;cursor:pointer;color:#58a6ff" onclick="showChmodModal('${fullPath.replace(/'/g, "\\'")}', '${octalStr}', '${escHtml(e.name)}')">${escHtml(modeStr)}</span>`;
         
-        const actions = `<button class="action-btn btn-download-row" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')" title="下载">⬇</button>`;
+        const actions = `<button class="action-btn btn-download-row" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')" title="下载">⬇ 下载</button>`;
         
         return `<tr>
             <td class="checkbox-cell"><input type="checkbox" class="item-checkbox" data-path="${escHtml(fullPath)}" onchange="toggleItem('${fullPath.replace(/'/g, "\\'")}', this.checked)"></td>
