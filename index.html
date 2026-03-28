@@ -15,6 +15,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
 
         header {
@@ -120,6 +121,7 @@
             gap: 6px;
             flex-wrap: wrap;
             flex-shrink: 0;
+            align-items: center;
         }
 
         .quick-btn {
@@ -195,6 +197,11 @@
 
         .dir-table { width: 100%; border-collapse: collapse; }
         .dir-table th { background: #161b22; padding: 10px 12px; text-align: left; font-size: 0.85em; color: #8b949e; font-weight: 500; border-bottom: 1px solid #30363d; position: sticky; top: 0; }
+        .dir-table th.sortable { cursor: pointer; user-select: none; transition: color 0.15s; }
+        .dir-table th.sortable:hover { color: #58a6ff; }
+        .dir-table th.sortable::after { content: ' ⇅'; opacity: 0.3; font-size: 0.8em; }
+        .dir-table th.sort-asc::after { content: ' ↑'; opacity: 1; color: #58a6ff; }
+        .dir-table th.sort-desc::after { content: ' ↓'; opacity: 1; color: #58a6ff; }
         .dir-table td { padding: 8px 12px; border-bottom: 1px solid #21262d; font-size: 0.9em; }
         .dir-table tr:hover td { background: #161b22; }
         .dir-icon { margin-right: 8px; }
@@ -436,6 +443,17 @@
         .settings-section-title { font-size: 0.82em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
         .settings-panel-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1999; display: none; }
         .settings-panel-overlay.visible { display: block; }
+        
+        /* Settings Tabs */
+        .settings-tabs { display: flex; gap: 0; border-bottom: 1px solid #30363d; }
+        .settings-tab { flex: 1; padding: 12px 8px; background: none; border: none; color: #8b949e; font-size: 0.85em; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+        .settings-tab:hover { color: #c9d1d9; background: rgba(255,255,255,0.02); }
+        .settings-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; background: rgba(88,166,255,0.05); }
+        .settings-tab-body { display: none; }
+        .settings-tab-body.active { display: block; }
+        .quick-path-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .quick-path-form .path-input { flex: 1; min-width: 120px; }
+        .quick-path-form .btn { flex-shrink: 0; }
 
         /* ── Responsive Design ─────────────────────────────── */
         @media (max-width: 768px) {
@@ -464,10 +482,11 @@
             .file-meta { flex-wrap: wrap; gap: 8px; }
 
             /* Directory Table */
-            .dir-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            .dir-table th, .dir-table td { padding: 8px 10px; font-size: 0.85em; white-space: nowrap; }
+            .dir-table { display: block; width: 100%; table-layout: fixed; }
+            .dir-table th, .dir-table td { padding: 8px 6px; font-size: 0.8em; white-space: normal; word-break: break-all; }
             .dir-table th:nth-child(4), .dir-table td:nth-child(4), /* 类型列 */
             .dir-table th:nth-child(6), .dir-table td:nth-child(6) { display: none; } /* 隐藏所有者列 */
+            .dir-table th:nth-child(5), .dir-table td:nth-child(5) { max-width: 80px; } /* 权限列 */
 
             /* Toolbar */
             .dir-toolbar { padding: 8px 12px; gap: 6px; }
@@ -533,6 +552,11 @@
 
             /* Action buttons */
             .action-btn { padding: 3px 6px; font-size: 0.78em; }
+            
+            /* 快捷路径表单 */
+            .quick-path-form { flex-direction: column; }
+            .quick-path-form .path-input { width: 100%; }
+            .quick-path-form .btn { width: 100%; }
         }
     </style>
 </head>
@@ -575,16 +599,8 @@
     </div>
 
     <div class="quick-paths">
-        <span style="font-size:0.8em;color:#8b949e;align-self:center;">快捷：</span>
-        <button class="quick-btn" onclick="setPath('/')">/ 根目录</button>
-        <button class="quick-btn" onclick="setPath('/etc')">/etc</button>
-        <button class="quick-btn" onclick="setPath('/var/log')">/var/log</button>
-        <button class="quick-btn" onclick="setPath('/var/www/html')">/var/www/html</button>
-        <button class="quick-btn" onclick="setPath('/etc/nginx/nginx.conf')">/etc/nginx/nginx.conf</button>
-        <button class="quick-btn" onclick="setPath('/proc/cpuinfo')">/proc/cpuinfo</button>
-        <button class="quick-btn" onclick="setPath('/proc/meminfo')">/proc/meminfo</button>
-        <button class="quick-btn" onclick="setPath('/etc/passwd')">/etc/passwd</button>
-        <button class="quick-btn" onclick="setPath('/etc/hosts')">/etc/hosts</button>
+        <span style="font-size:0.8em;color:#8b949e;align-self:center;flex-shrink:0;">快捷：</span>
+        <div id="quickPathsContainer" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"></div>
     </div>
 
     <div class="breadcrumb" id="breadcrumb">
@@ -617,9 +633,16 @@
         <h3>设置</h3>
         <button class="settings-close" onclick="closeSettingsPanel()">&times;</button>
     </div>
+    
+    <!-- Settings Tabs -->
+    <div class="settings-tabs">
+        <button class="settings-tab active" onclick="switchSettingsTab('whitelist')">删除白名单</button>
+        <button class="settings-tab" onclick="switchSettingsTab('quickpaths')">快捷路径</button>
+    </div>
+    
     <div class="settings-content">
-        <div class="settings-section">
-            <div class="settings-section-title">📋 删除白名单</div>
+        <!-- 删除白名单标签 -->
+        <div id="settingsTabWhitelist" class="settings-tab-body active">
             <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">只有白名单中的路径才允许删除操作</p>
             <div style="display:flex;gap:8px;margin-bottom:16px;">
                 <input type="text" id="newWhitelistPath" class="path-input" placeholder="输入路径，如 /tmp" style="flex:1">
@@ -632,14 +655,33 @@
                     </div>
                 </div>
             </div>
+            <div style="margin-top:16px;padding:12px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;">
+                <div style="color:#f85149;font-weight:600;margin-bottom:6px;font-size:0.9em;">⚠️ 安全提示</div>
+                <ul style="color:#8b949e;font-size:0.8em;margin-left:14px;line-height:1.5;">
+                    <li>白名单路径及其子目录都可以被删除</li>
+                    <li>请谨慎添加，避免误删重要文件</li>
+                </ul>
+            </div>
         </div>
-        <div style="padding:16px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;">
-            <div style="color:#f85149;font-weight:600;margin-bottom:8px;">⚠️ 安全提示</div>
-            <ul style="color:#8b949e;font-size:0.85em;margin-left:16px;line-height:1.6;">
-                <li>白名单中的路径及其子目录都可以被删除</li>
-                <li>请谨慎添加路径，避免误删系统重要文件</li>
-                <li>建议只添加临时目录或上传目录等非关键路径</li>
-            </ul>
+        
+        <!-- 快捷路径标签 -->
+        <div id="settingsTabQuickpaths" class="settings-tab-body">
+            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">自定义快捷访问路径，方便快速导航</p>
+            <div class="quick-path-form">
+                <input type="text" id="newQuickPathInput" class="path-input" placeholder="输入路径，如 /var/log">
+                <input type="text" id="newQuickNameInput" class="path-input" placeholder="显示名称">
+                <button class="btn success" onclick="addQuickPathFromPanel()">添加</button>
+            </div>
+            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;max-height:400px;overflow-y:auto;">
+                <div id="quickPathsSettingsContainer">
+                    <div class="state-box" style="padding:20px;">
+                        <div class="state-msg">加载中...</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:12px;">
+                <button class="btn" onclick="resetQuickPathsToDefault()" style="font-size:0.8em;">恢复默认快捷路径</button>
+            </div>
         </div>
     </div>
 </div>
@@ -653,6 +695,208 @@ let currentDirPath = '';
 let currentDirWritable = false;
 let currentDirCanDelete = false;
 let selectedItems = new Set();
+let currentDirData = null;  // 保存当前目录数据用于排序
+let sortField = 'name';     // 当前排序字段
+let sortOrder = 'asc';      // 排序方向 asc/desc
+
+// 默认快捷路径配置
+const DEFAULT_QUICK_PATHS = [
+    { path: '/', name: '/ 根目录' },
+    { path: '/etc', name: '/etc' },
+    { path: '/var/log', name: '/var/log' },
+    { path: '/var/www/html', name: '/var/www/html' },
+    { path: '/etc/nginx/nginx.conf', name: '/etc/nginx/nginx.conf' },
+    { path: '/proc/cpuinfo', name: '/proc/cpuinfo' },
+    { path: '/proc/meminfo', name: '/proc/meminfo' },
+    { path: '/etc/passwd', name: '/etc/passwd' },
+    { path: '/etc/hosts', name: '/etc/hosts' }
+];
+
+// 获取快捷路径（从 localStorage 或使用默认值）
+function getQuickPaths() {
+    const saved = localStorage.getItem('quickPaths');
+    return saved ? JSON.parse(saved) : DEFAULT_QUICK_PATHS;
+}
+
+// 保存快捷路径到 localStorage
+function saveQuickPaths(paths) {
+    localStorage.setItem('quickPaths', JSON.stringify(paths));
+}
+
+// 渲染快捷路径按钮
+function renderQuickPaths() {
+    const paths = getQuickPaths();
+    const container = document.getElementById('quickPathsContainer');
+    container.innerHTML = paths.map(p => 
+        `<button class="quick-btn" onclick="setPath('${p.path.replace(/'/g, "\\'")}')">${escHtml(p.name)}</button>`
+    ).join('');
+}
+
+// 切换设置面板标签
+function switchSettingsTab(tab) {
+    // 更新标签按钮状态
+    document.querySelectorAll('.settings-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.settings-tab-body').forEach(body => body.classList.remove('active'));
+    
+    if (tab === 'whitelist') {
+        document.querySelector('.settings-tab:nth-child(1)').classList.add('active');
+        document.getElementById('settingsTabWhitelist').classList.add('active');
+    } else if (tab === 'quickpaths') {
+        document.querySelector('.settings-tab:nth-child(2)').classList.add('active');
+        document.getElementById('settingsTabQuickpaths').classList.add('active');
+        renderQuickPathsSettings();
+    }
+}
+
+// 渲染快捷路径设置列表
+function renderQuickPathsSettings() {
+    const paths = getQuickPaths();
+    const container = document.getElementById('quickPathsSettingsContainer');
+    
+    if (paths.length === 0) {
+        container.innerHTML = `<div class="state-box" style="padding:20px;"><div class="state-msg">暂无快捷路径</div></div>`;
+        return;
+    }
+    
+    container.innerHTML = paths.map((p, i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #21262d;">
+            <div style="flex:1;min-width:0;">
+                <div style="color:#e6edf3;font-size:0.9em;">${escHtml(p.name)}</div>
+                <div style="color:#8b949e;font-size:0.78em;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(p.path)}</div>
+            </div>
+            <button class="action-btn" style="color:#f85149;margin-left:12px;" onclick="removeQuickPath(${i})">删除</button>
+        </div>
+    `).join('');
+}
+
+// 添加快捷路径
+function addQuickPathFromPanel() {
+    const pathInput = document.getElementById('newQuickPathInput');
+    const nameInput = document.getElementById('newQuickNameInput');
+    const path = pathInput.value.trim();
+    const name = nameInput.value.trim() || path;
+    
+    if (!path) {
+        showToast('请输入路径', 'error');
+        return;
+    }
+    
+    const paths = getQuickPaths();
+    
+    // 检查是否已存在
+    if (paths.some(p => p.path === path)) {
+        showToast('该路径已存在', 'error');
+        return;
+    }
+    
+    paths.push({ path, name });
+    saveQuickPaths(paths);
+    
+    pathInput.value = '';
+    nameInput.value = '';
+    
+    renderQuickPathsSettings();
+    renderQuickPaths();
+    showToast('快捷路径已添加', 'success');
+}
+
+// 删除快捷路径
+function removeQuickPath(index) {
+    const paths = getQuickPaths();
+    paths.splice(index, 1);
+    saveQuickPaths(paths);
+    renderQuickPathsSettings();
+    renderQuickPaths();
+    showToast('快捷路径已删除', 'success');
+}
+
+// 恢复默认快捷路径
+function resetQuickPathsToDefault() {
+    if (confirm('确定要恢复默认快捷路径吗？这将覆盖当前配置。')) {
+        saveQuickPaths(DEFAULT_QUICK_PATHS);
+        renderQuickPathsSettings();
+        renderQuickPaths();
+        showToast('已恢复默认快捷路径', 'success');
+    }
+}
+
+// 获取文件类型的友好显示名称
+function getFileTypeName(name, isDir) {
+    if (isDir) return '文件夹';
+    const ext = name.split('.').pop().toLowerCase();
+    const typeMap = {
+        // 文档
+        'txt': '文本文件', 'md': 'Markdown', 'pdf': 'PDF文档', 'doc': 'Word文档', 'docx': 'Word文档',
+        'xls': 'Excel表格', 'xlsx': 'Excel表格', 'ppt': 'PPT演示', 'pptx': 'PPT演示',
+        // 代码
+        'js': 'JavaScript', 'ts': 'TypeScript', 'py': 'Python', 'java': 'Java', 'c': 'C源码',
+        'cpp': 'C++源码', 'h': 'C头文件', 'hpp': 'C++头文件', 'cs': 'C#源码', 'go': 'Go源码',
+        'rs': 'Rust源码', 'rb': 'Ruby源码', 'php': 'PHP源码', 'swift': 'Swift源码',
+        'html': 'HTML', 'css': 'CSS样式', 'scss': 'SCSS样式', 'less': 'LESS样式',
+        'json': 'JSON数据', 'xml': 'XML数据', 'yaml': 'YAML配置', 'yml': 'YAML配置',
+        'sql': 'SQL脚本', 'sh': 'Shell脚本', 'bat': '批处理', 'ps1': 'PowerShell',
+        // 图片
+        'png': 'PNG图片', 'jpg': 'JPEG图片', 'jpeg': 'JPEG图片', 'gif': 'GIF图片',
+        'svg': 'SVG图片', 'webp': 'WebP图片', 'ico': '图标文件', 'bmp': 'BMP图片',
+        // 音视频
+        'mp3': 'MP3音频', 'wav': 'WAV音频', 'flac': 'FLAC音频', 'mp4': 'MP4视频',
+        'avi': 'AVI视频', 'mkv': 'MKV视频', 'mov': 'MOV视频', 'webm': 'WebM视频',
+        // 压缩包
+        'zip': 'ZIP压缩包', 'rar': 'RAR压缩包', '7z': '7-Zip压缩包', 'tar': 'TAR归档',
+        'gz': 'GZip压缩', 'bz2': 'BZ2压缩',
+        // 其他
+        'log': '日志文件', 'conf': '配置文件', 'cfg': '配置文件', 'ini': 'INI配置',
+        'key': '密钥文件', 'pem': 'PEM证书', 'crt': '证书文件', 'pub': '公钥文件',
+        'db': '数据库', 'sqlite': 'SQLite数据库',
+    };
+    return typeMap[ext] || '文件';
+}
+
+// 排序函数
+function sortEntries(entries, field, order) {
+    return [...entries].sort((a, b) => {
+        // 文件夹始终优先显示
+        if (a.type === 'dir' && b.type !== 'dir') return -1;
+        if (a.type !== 'dir' && b.type === 'dir') return 1;
+        
+        let cmp = 0;
+        switch (field) {
+            case 'name':
+                cmp = a.name.localeCompare(b.name, 'zh-CN');
+                break;
+            case 'size':
+                cmp = (a.size || 0) - (b.size || 0);
+                break;
+            case 'type':
+                cmp = getFileTypeName(a.name, a.type === 'dir').localeCompare(getFileTypeName(b.name, b.type === 'dir'), 'zh-CN');
+                break;
+            case 'owner':
+                const aOwner = a.permissions?.owner || '';
+                const bOwner = b.permissions?.owner || '';
+                cmp = aOwner.localeCompare(bOwner, 'zh-CN');
+                break;
+            case 'mtime':
+                const aMtime = a.permissions?.mtime || 0;
+                const bMtime = b.permissions?.mtime || 0;
+                cmp = aMtime - bMtime;
+                break;
+            default:
+                cmp = a.name.localeCompare(b.name, 'zh-CN');
+        }
+        return order === 'desc' ? -cmp : cmp;
+    });
+}
+
+// 切换排序
+function toggleSort(field) {
+    if (sortField === field) {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField = field;
+        sortOrder = 'asc';
+    }
+    if (currentDirData) renderDir(currentDirData);
+}
 
 function switchTab(tab) {
     currentTab = tab;
@@ -1015,6 +1259,7 @@ function renderDir(data) {
     
     currentDirPath = data.path;
     currentDirWritable = canWrite;
+    currentDirData = data;  // 保存数据用于排序
     selectedItems.clear();
     
     // 工具栏
@@ -1055,7 +1300,16 @@ function renderDir(data) {
         return;
     }
     
-    const rows = entries.map(e => {
+    // 排序条目
+    const sortedEntries = sortEntries(entries, sortField, sortOrder);
+    
+    // 生成排序表头的类名
+    function getSortClass(field) {
+        if (sortField === field) return `sortable sort-${sortOrder}`;
+        return 'sortable';
+    }
+    
+    const rows = sortedEntries.map(e => {
         const isDir = e.type === 'dir';
         const fullPath = data.path.replace(/\/$/, '') + '/' + e.name;
         const icon = isDir ? '📁' : getFileIcon(e.name);
@@ -1065,6 +1319,7 @@ function renderDir(data) {
         const octalStr = perms.octal || (isDir ? '0o755' : '0o644');
         const owner = perms.owner || '-';
         const entryCanDelete = e.can_delete || false;
+        const typeName = getFileTypeName(e.name, isDir);
         
         const permDisplay = `<span class="perm-link" style="font-family:monospace;font-size:0.82em;cursor:pointer;color:#58a6ff" onclick="showChmodModal('${fullPath.replace(/'/g, "\\'")}', '${octalStr}', '${escHtml(e.name)}')">${escHtml(modeStr)}</span>`;
         
@@ -1078,14 +1333,14 @@ function renderDir(data) {
             <td class="checkbox-cell"><input type="checkbox" class="item-checkbox" data-path="${escHtml(fullPath)}" data-can-delete="${entryCanDelete}" onchange="toggleItem('${fullPath.replace(/'/g, "\\'")}', this.checked)"></td>
             <td><span class="dir-icon">${icon}</span><span class="${nameClass}" onclick="setPath('${fullPath.replace(/'/g, "\\'")}')">${escHtml(e.name)}</span></td>
             <td class="file-size">${isDir ? '-' : formatSize(e.size)}</td>
-            <td style="color:#484f58;font-size:0.8em">${isDir ? 'dir' : 'file'}</td>
+            <td style="color:#8b949e;font-size:0.8em">${escHtml(typeName)}</td>
             <td style="font-family:monospace;font-size:0.8em">${permDisplay}</td>
             <td style="color:#8b949e;font-size:0.8em">${escHtml(owner)}</td>
             <td>${actions}</td>
         </tr>`;
     }).join('');
     
-    document.getElementById('contentArea').innerHTML = toolbarHtml + `<table class="dir-table"><thead><tr><th class="checkbox-cell"></th><th>名称</th><th style="text-align:right">大小</th><th>类型</th><th>权限</th><th>所有者</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+    document.getElementById('contentArea').innerHTML = toolbarHtml + `<table class="dir-table"><thead><tr><th class="checkbox-cell"></th><th class="${getSortClass('name')}" onclick="toggleSort('name')">名称</th><th class="${getSortClass('size')}" onclick="toggleSort('size')" style="text-align:right">大小</th><th class="${getSortClass('type')}" onclick="toggleSort('type')">类型</th><th>权限</th><th class="${getSortClass('owner')}" onclick="toggleSort('owner')">所有者</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function isMarkdown(path) { return /\.(md|markdown|mdown|mkd)$/i.test(path); }
@@ -1445,6 +1700,7 @@ function renderMonitor(d) {
 
 document.getElementById('pathInput').addEventListener('keydown', e => { if (e.key === 'Enter') loadPath(); });
 document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+renderQuickPaths();  // 初始化快捷路径
 checkAuth();
 </script>
 

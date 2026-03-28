@@ -463,7 +463,10 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/auth/check":
+        if parsed.path == "/" or parsed.path == "/index.html":
+            # 提供静态文件 index.html
+            self._serve_static_file("index.html")
+        elif parsed.path == "/api/auth/check":
             sid = self.get_cookie("sessionid")
             self.send_json(200, {"authenticated": bool(get_session(sid))})
         elif parsed.path == "/api/system":
@@ -477,6 +480,38 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
                 self._handle_single_download(parsed)
         else:
             self.send_json(404, {"error": "Not Found"})
+    
+    def _serve_static_file(self, filename):
+        """提供静态文件服务"""
+        try:
+            # 使用项目目录下的静态文件
+            project_dir = Path("/home/file-viewer")
+            file_path = project_dir / filename
+            
+            if not file_path.exists():
+                self.send_json(404, {"error": "File not found"})
+                return
+            
+            # 确定 MIME 类型
+            mime_types = {
+                ".html": "text/html; charset=utf-8",
+                ".css": "text/css; charset=utf-8",
+                ".js": "application/javascript; charset=utf-8",
+                ".json": "application/json; charset=utf-8",
+            }
+            ext = file_path.suffix.lower()
+            mime_type = mime_types.get(ext, "application/octet-stream")
+            
+            with open(file_path, "rb") as f:
+                content = f.read()
+            
+            self.send_response(200)
+            self.send_header("Content-Type", mime_type)
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
 
     def _handle_file(self, parsed):
         params = urllib.parse.parse_qs(parsed.query)
