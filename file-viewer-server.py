@@ -83,7 +83,8 @@ def load_whitelist() -> list:
             with WHITELIST_FILE.open("r", encoding="utf-8") as f:
                 return json.load(f)
     except Exception:
-        pass    return DELETE_WHITELIST.copy()
+        pass
+    return DELETE_WHITELIST.copy()
 
 
 def save_whitelist(whitelist: list) -> bool:
@@ -151,6 +152,9 @@ def check_permission(path: str, action: str) -> tuple:
         else:
             return False, f"{action} permission denied for this folder"
     else:
+        # delete 操作由白名单控制，默认允许
+        if action == "delete":
+            return True, "allowed"
         if action == "read":
             return True, "allowed"
         else:

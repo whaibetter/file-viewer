@@ -258,7 +258,9 @@
         .login-error { display: none; background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.4); border-radius: 6px; padding: 8px 12px; font-size: 0.85em; color: #f85149; text-align: center; }
         .login-error.visible { display: block; }
 
-        .logout-btn { margin-left: auto; background: none; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; padding: 4px 12px; font-size: 0.82em; cursor: pointer; transition: all 0.15s; }
+        .settings-btn { margin-left: auto; background: none; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; padding: 4px 12px; font-size: 0.82em; cursor: pointer; transition: all 0.15s; }
+        .settings-btn:hover { color: #58a6ff; border-color: #58a6ff; }
+        .logout-btn { background: none; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; padding: 4px 12px; font-size: 0.82em; cursor: pointer; transition: all 0.15s; }
         .logout-btn:hover { color: #f85149; border-color: #f85149; }
 
         /* ── System Monitor Dashboard ── */
@@ -421,6 +423,117 @@
         .delete-list { max-height: 200px; overflow-y: auto; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; margin: 10px 0; }
         .delete-list-item { padding: 6px 8px; font-family: monospace; font-size: 0.85em; border-bottom: 1px solid #21262d; }
         .delete-list-item:last-child { border-bottom: none; }
+        
+        /* Settings Panel */
+        .settings-panel { position: fixed; top: 0; right: -400px; width: 400px; height: 100vh; background: #161b22; border-left: 1px solid #30363d; z-index: 2000; transition: right 0.3s ease; display: flex; flex-direction: column; }
+        .settings-panel.open { right: 0; }
+        .settings-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #30363d; }
+        .settings-header h3 { margin: 0; font-size: 1.1em; color: #e6edf3; }
+        .settings-close { background: none; border: none; color: #8b949e; font-size: 1.5em; cursor: pointer; padding: 0; line-height: 1; }
+        .settings-close:hover { color: #f85149; }
+        .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .settings-section { margin-bottom: 24px; }
+        .settings-section-title { font-size: 0.82em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+        .settings-panel-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1999; display: none; }
+        .settings-panel-overlay.visible { display: block; }
+
+        /* ── Responsive Design ─────────────────────────────── */
+        @media (max-width: 768px) {
+            /* Header */
+            header { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+            header h1 { font-size: 1em; }
+            .nav-tabs { margin-left: 0; order: 3; width: 100%; justify-content: center; }
+            .nav-tab { padding: 6px 10px; font-size: 0.82em; }
+            .settings-btn, .logout-btn { padding: 4px 8px; font-size: 0.78em; }
+
+            /* Search Bar */
+            .search-bar { padding: 10px 12px; flex-wrap: wrap; }
+            .path-input { font-size: 0.9em; padding: 8px 10px; }
+            .btn { padding: 8px 12px; font-size: 0.85em; }
+
+            /* Quick Paths */
+            .quick-paths { padding: 6px 12px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+            .quick-paths > span { flex-shrink: 0; }
+            .quick-btn { padding: 3px 8px; font-size: 0.75em; white-space: nowrap; }
+
+            /* Breadcrumb */
+            .breadcrumb { padding: 8px 12px; font-size: 0.8em; }
+
+            /* File Header */
+            .file-header { flex-direction: column; align-items: flex-start; padding: 10px 12px; gap: 8px; }
+            .file-meta { flex-wrap: wrap; gap: 8px; }
+
+            /* Directory Table */
+            .dir-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .dir-table th, .dir-table td { padding: 8px 10px; font-size: 0.85em; white-space: nowrap; }
+            .dir-table th:nth-child(4), .dir-table td:nth-child(4), /* 类型列 */
+            .dir-table th:nth-child(6), .dir-table td:nth-child(6) { display: none; } /* 隐藏所有者列 */
+
+            /* Toolbar */
+            .dir-toolbar { padding: 8px 12px; gap: 6px; }
+            .toolbar-btn { padding: 5px 10px; font-size: 0.8em; }
+            .action-divider { display: none; }
+            .selection-info { margin-left: 0; margin-top: 6px; width: 100%; text-align: center; }
+
+            /* Code/Content */
+            pre { padding: 12px; font-size: 0.82em; }
+            .line-num { min-width: 36px; padding-right: 10px; }
+            .edit-textarea { padding: 12px; font-size: 0.82em; }
+
+            /* Markdown */
+            .md-body { padding: 16px 12px; font-size: 0.9em; }
+            .md-body h1 { font-size: 1.6em; }
+            .md-body h2 { font-size: 1.3em; }
+            .md-body h3 { font-size: 1.1em; }
+            .md-body pre { padding: 12px; }
+
+            /* Modal */
+            .modal-box { min-width: auto; width: calc(100% - 24px); max-width: none; margin: 12px; max-height: 90vh; }
+            .modal-content { padding: 16px; }
+            .modal-actions { flex-direction: column; }
+            .modal-btn { width: 100%; text-align: center; }
+            .perm-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+            .perm-check { padding: 8px 4px; }
+            .perm-check label { font-size: 0.7em; }
+
+            /* Login Card */
+            .login-card { width: calc(100% - 24px); margin: 12px; padding: 30px 24px; }
+
+            /* Settings Panel - 全屏 */
+            .settings-panel { width: 100%; right: -100%; }
+            .settings-content { padding: 16px; }
+
+            /* Monitor */
+            .monitor-wrap { padding: 12px; }
+            .mon-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .mon-header h2 { font-size: 1em; }
+            .mon-grid { grid-template-columns: 1fr; gap: 12px; }
+            .mon-card { padding: 14px; }
+            .mon-big-num { font-size: 1.6em; }
+            .net-pair { gap: 20px; }
+
+            /* Checkbox */
+            .checkbox-cell { width: 32px; }
+            .checkbox-cell input[type="checkbox"] { width: 18px; height: 18px; }
+            .checkbox-cell input[type="checkbox"]:checked::after { left: 4px; top: 1px; width: 4px; height: 8px; }
+        }
+
+        @media (max-width: 480px) {
+            /* 更小屏幕 */
+            header h1 { font-size: 0.95em; }
+            .nav-tab { padding: 5px 8px; font-size: 0.78em; }
+            .quick-paths > span { display: none; } /* 隐藏"快捷："文字 */
+            .quick-btn { padding: 3px 6px; font-size: 0.72em; }
+
+            /* 隐藏更多表格列 */
+            .dir-table th:nth-child(5), .dir-table td:nth-child(5) { display: none; } /* 隐藏权限列 */
+
+            /* 工具栏按钮更紧凑 */
+            .toolbar-btn { padding: 4px 8px; font-size: 0.75em; gap: 3px; }
+
+            /* Action buttons */
+            .action-btn { padding: 3px 6px; font-size: 0.78em; }
+        }
     </style>
 </head>
 <body>
@@ -446,8 +559,8 @@
     <div class="nav-tabs">
         <button class="nav-tab active" id="tabFiles" onclick="switchTab('files')">文件浏览</button>
         <button class="nav-tab" id="tabMonitor" onclick="switchTab('monitor')">系统监控</button>
-        <button class="nav-tab" id="tabWhitelist" onclick="switchTab('whitelist')">删除白名单</button>
     </div>
+    <button class="settings-btn" onclick="openSettingsPanel()" title="设置">⚙️</button>
     <button class="logout-btn" onclick="doLogout()">退出登录</button>
 </header>
 
@@ -497,36 +610,35 @@
     </div>
 </div>
 
-<!-- ============ WHITELIST SECTION ============ -->
-<div id="sectionWhitelist" class="section-hidden" style="flex:1;display:flex;flex-direction:column;">
-    <div class="monitor-wrap">
-        <div class="mon-header">
-            <h2>删除白名单管理</h2>
-            <div class="mon-meta">
-                <span style="color:#8b949e">只有白名单中的路径才允许删除</span>
+<!-- ============ SETTINGS PANEL ============ -->
+<div id="settingsPanelOverlay" class="settings-panel-overlay" onclick="closeSettingsPanel()"></div>
+<div id="settingsPanel" class="settings-panel">
+    <div class="settings-header">
+        <h3>设置</h3>
+        <button class="settings-close" onclick="closeSettingsPanel()">&times;</button>
+    </div>
+    <div class="settings-content">
+        <div class="settings-section">
+            <div class="settings-section-title">📋 删除白名单</div>
+            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">只有白名单中的路径才允许删除操作</p>
+            <div style="display:flex;gap:8px;margin-bottom:16px;">
+                <input type="text" id="newWhitelistPath" class="path-input" placeholder="输入路径，如 /tmp" style="flex:1">
+                <button class="btn success" onclick="addWhitelistPathFromPanel()">添加</button>
             </div>
-        </div>
-        <div style="margin-bottom:20px;display:flex;gap:8px;">
-            <input type="text" id="newWhitelistPath" class="path-input" placeholder="输入路径，如 /tmp 或 /var/www/uploads" style="flex:1">
-            <button class="btn success" onclick="addWhitelistPath()">添加路径</button>
-        </div>
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px;">
-            <div style="font-size:0.82em;color:#8b949e;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
-                📋 当前白名单
-            </div>
-            <div id="whitelistContainer">
-                <div class="state-box" style="padding:20px;">
-                    <div class="state-msg">加载中...</div>
+            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;">
+                <div id="whitelistContainer">
+                    <div class="state-box" style="padding:20px;">
+                        <div class="state-msg">加载中...</div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div style="margin-top:20px;padding:16px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;">
+        <div style="padding:16px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;">
             <div style="color:#f85149;font-weight:600;margin-bottom:8px;">⚠️ 安全提示</div>
-            <ul style="color:#8b949e;font-size:0.9em;margin-left:20px;line-height:1.6;">
+            <ul style="color:#8b949e;font-size:0.85em;margin-left:16px;line-height:1.6;">
                 <li>白名单中的路径及其子目录都可以被删除</li>
                 <li>请谨慎添加路径，避免误删系统重要文件</li>
                 <li>建议只添加临时目录或上传目录等非关键路径</li>
-                <li>白名单存储在 /etc/file-viewer-whitelist.json</li>
             </ul>
         </div>
     </div>
@@ -546,28 +658,52 @@ function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
     document.getElementById('tabMonitor').classList.toggle('active', tab === 'monitor');
-    document.getElementById('tabWhitelist').classList.toggle('active', tab === 'whitelist');
     const sf = document.getElementById('sectionFiles');
     const sm = document.getElementById('sectionMonitor');
-    const sw = document.getElementById('sectionWhitelist');
     if (tab === 'files') {
         sf.classList.remove('section-hidden');
         sm.classList.add('section-hidden');
-        sw.classList.add('section-hidden');
         stopMonitor();
     } else if (tab === 'monitor') {
         sf.classList.add('section-hidden');
         sm.classList.remove('section-hidden');
-        sw.classList.add('section-hidden');
         sm.style.display = 'flex';
         startMonitor();
-    } else if (tab === 'whitelist') {
-        sf.classList.add('section-hidden');
-        sm.classList.add('section-hidden');
-        sw.classList.remove('section-hidden');
-        sw.style.display = 'flex';
-        stopMonitor();
-        loadWhitelist();
+    }
+}
+
+// Settings Panel Functions
+function openSettingsPanel() {
+    document.getElementById('settingsPanel').classList.add('open');
+    document.getElementById('settingsPanelOverlay').classList.add('visible');
+    loadWhitelist();
+}
+
+function closeSettingsPanel() {
+    document.getElementById('settingsPanel').classList.remove('open');
+    document.getElementById('settingsPanelOverlay').classList.remove('visible');
+}
+
+async function addWhitelistPathFromPanel() {
+    const input = document.getElementById('newWhitelistPath');
+    const path = input.value.trim();
+    if (!path) { showNotification('请输入路径', 'error'); return; }
+    try {
+        const resp = await fetch('/api/whitelist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add', path })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            input.value = '';
+            renderWhitelist(data.whitelist);
+            showNotification('添加成功', 'success');
+        } else {
+            showNotification(data.error || '添加失败', 'error');
+        }
+    } catch (e) {
+        showNotification('添加失败: ' + e.message, 'error');
     }
 }
 
@@ -900,10 +1036,10 @@ function renderDir(data) {
         // 中间：选择操作
         toolbarHtml += '<div class="action-row">';
         toolbarHtml += `<button class="toolbar-btn" onclick="toggleSelectAll()" title="全选/取消全选">全选</button>`;
-        toolbarHtml += `<button class="toolbar-btn btn-download" id="downloadSelectedBtn" onclick="downloadSelected()" disabled>下载选中</button>`;
+        toolbarHtml += `<button class="toolbar-btn btn-download" id="downloadSelectedBtn" onclick="downloadSelected()" disabled>⬇ 下载选中</button>`;
         // 只有当前目录在白名单中才显示批量删除按钮
         if (dirCanDelete) {
-            toolbarHtml += `<button class="toolbar-btn btn-delete" id="deleteSelectedBtn" onclick="deleteSelected()" disabled>删除选中</button>`;
+            toolbarHtml += `<button class="toolbar-btn btn-delete" id="deleteSelectedBtn" onclick="deleteSelected()" disabled>🗑 删除选中</button>`;
         }
         toolbarHtml += '</div>';
     }
@@ -933,9 +1069,9 @@ function renderDir(data) {
         const permDisplay = `<span class="perm-link" style="font-family:monospace;font-size:0.82em;cursor:pointer;color:#58a6ff" onclick="showChmodModal('${fullPath.replace(/'/g, "\\'")}', '${octalStr}', '${escHtml(e.name)}')">${escHtml(modeStr)}</span>`;
         
         // 操作按钮：下载按钮 + 删除按钮（如果在白名单中）
-        let actions = `<button class="action-btn btn-download-row" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')" title="下载">⬇</button>`;
+        let actions = `<button class="action-btn btn-download-row" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')" title="下载">⬇ 下载</button>`;
         if (entryCanDelete) {
-            actions += `<button class="action-btn" style="color:#f85149;" onclick="event.stopPropagation();deleteSingleItem('${fullPath.replace(/'/g, "\\'")}')" title="删除">🗑</button>`;
+            actions += `<button class="action-btn" style="color:#f85149;" onclick="event.stopPropagation();deleteSingleItem('${fullPath.replace(/'/g, "\\'")}')" title="删除">🗑 删除</button>`;
         }
         
         return `<tr>
@@ -1240,36 +1376,15 @@ function renderWhitelist(whitelist) {
         return;
     }
     const items = whitelist.map((path, idx) => `
-        <div class="mon-row" style="align-items:center;padding:10px 12px;">
-            <span style="font-family:monospace;color:#58a6ff;flex:1;">${escHtml(path)}</span>
+        <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #21262d;">
+            <span style="font-family:monospace;color:#58a6ff;flex:1;font-size:0.88em;">${escHtml(path)}</span>
             <button class="action-btn" style="color:#f85149;" onclick="removeWhitelistPath('${escHtml(path).replace(/'/g, "\\'")}')" title="移除">移除</button>
         </div>
     `).join('');
-    container.innerHTML = `<div style="border:1px solid #21262d;border-radius:6px;overflow:hidden;">${items}</div>`;
+    container.innerHTML = items;
 }
 
-async function addWhitelistPath() {
-    const input = document.getElementById('newWhitelistPath');
-    const path = input.value.trim();
-    if (!path) { showNotification('请输入路径', 'error'); return; }
-    try {
-        const resp = await fetch('/api/whitelist', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'add', path })
-        });
-        const data = await resp.json();
-        if (resp.ok) {
-            input.value = '';
-            renderWhitelist(data.whitelist);
-            showNotification('添加成功', 'success');
-        } else {
-            showNotification(data.error || '添加失败', 'error');
-        }
-    } catch (e) {
-        showNotification('添加失败: ' + e.message, 'error');
-    }
-}
+
 
 async function removeWhitelistPath(path) {
     try {
