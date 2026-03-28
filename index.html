@@ -446,6 +446,7 @@
     <div class="nav-tabs">
         <button class="nav-tab active" id="tabFiles" onclick="switchTab('files')">文件浏览</button>
         <button class="nav-tab" id="tabMonitor" onclick="switchTab('monitor')">系统监控</button>
+        <button class="nav-tab" id="tabWhitelist" onclick="switchTab('whitelist')">删除白名单</button>
     </div>
     <button class="logout-btn" onclick="doLogout()">退出登录</button>
 </header>
@@ -496,6 +497,41 @@
     </div>
 </div>
 
+<!-- ============ WHITELIST SECTION ============ -->
+<div id="sectionWhitelist" class="section-hidden" style="flex:1;display:flex;flex-direction:column;">
+    <div class="monitor-wrap">
+        <div class="mon-header">
+            <h2>删除白名单管理</h2>
+            <div class="mon-meta">
+                <span style="color:#8b949e">只有白名单中的路径才允许删除</span>
+            </div>
+        </div>
+        <div style="margin-bottom:20px;display:flex;gap:8px;">
+            <input type="text" id="newWhitelistPath" class="path-input" placeholder="输入路径，如 /tmp 或 /var/www/uploads" style="flex:1">
+            <button class="btn success" onclick="addWhitelistPath()">添加路径</button>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px;">
+            <div style="font-size:0.82em;color:#8b949e;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+                📋 当前白名单
+            </div>
+            <div id="whitelistContainer">
+                <div class="state-box" style="padding:20px;">
+                    <div class="state-msg">加载中...</div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:20px;padding:16px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;">
+            <div style="color:#f85149;font-weight:600;margin-bottom:8px;">⚠️ 安全提示</div>
+            <ul style="color:#8b949e;font-size:0.9em;margin-left:20px;line-height:1.6;">
+                <li>白名单中的路径及其子目录都可以被删除</li>
+                <li>请谨慎添加路径，避免误删系统重要文件</li>
+                <li>建议只添加临时目录或上传目录等非关键路径</li>
+                <li>白名单存储在 /etc/file-viewer-whitelist.json</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentPath = '';
 let currentFileData = null;
@@ -510,17 +546,28 @@ function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
     document.getElementById('tabMonitor').classList.toggle('active', tab === 'monitor');
+    document.getElementById('tabWhitelist').classList.toggle('active', tab === 'whitelist');
     const sf = document.getElementById('sectionFiles');
     const sm = document.getElementById('sectionMonitor');
+    const sw = document.getElementById('sectionWhitelist');
     if (tab === 'files') {
         sf.classList.remove('section-hidden');
         sm.classList.add('section-hidden');
+        sw.classList.add('section-hidden');
         stopMonitor();
-    } else {
+    } else if (tab === 'monitor') {
         sf.classList.add('section-hidden');
         sm.classList.remove('section-hidden');
+        sw.classList.add('section-hidden');
         sm.style.display = 'flex';
         startMonitor();
+    } else if (tab === 'whitelist') {
+        sf.classList.add('section-hidden');
+        sm.classList.add('section-hidden');
+        sw.classList.remove('section-hidden');
+        sw.style.display = 'flex';
+        stopMonitor();
+        loadWhitelist();
     }
 }
 
@@ -719,7 +766,13 @@ function updateSelectionInfo() {
     const deleteBtn = document.getElementById('deleteSelectedBtn');
     if (info) info.textContent = selectedItems.size > 0 ? `已选 ${selectedItems.size} 项` : '';
     if (downloadBtn) downloadBtn.disabled = selectedItems.size === 0;
-    if (deleteBtn) deleteBtn.disabled = selectedItems.size === 0;
+    
+    // 检查选中项是否都在白名单中（可删除）
+    if (deleteBtn) {
+        const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+        const allDeletable = Array.from(checkboxes).every(cb => cb.dataset.canDelete === 'true');
+        deleteBtn.disabled = selectedItems.size === 0 || !allDeletable;
+    }
 }
 
 // ── Download Functions ───────────────────────────────────
@@ -769,8 +822,9 @@ function showDeleteModal(paths) {
     document.getElementById('modalTitle').textContent = '确认删除';
     document.getElementById('modalContent').innerHTML = `
         <p style="color:#f85149;margin-bottom:10px">⚠️ 此操作不可撤销！</p>
-        <p style="color:#8b949e;margin-bottom:10px">以下 ${paths.length} 项将被删除：</p>
+        <p style="color:#8b949e;margin-bottom:10px">以下 ${paths.length} 项将被删除（仅白名单中的路径可删除）：</p>
         <div class="delete-list">${pathList}</div>
+        <p style="color:#484f58;font-size:0.85em;margin-top:10px;">💡 提示：只有白名单中的路径才能被删除，如需修改白名单请前往"删除白名单"页面</p>
         <div class="modal-actions">
             <button class="modal-btn modal-btn-cancel" onclick="closeModal()">取消</button>
             <button class="modal-btn modal-btn-danger" onclick="doDelete()">确认删除</button>
@@ -808,17 +862,23 @@ function deleteSelected() {
     showDeleteModal(Array.from(selectedItems));
 }
 
+function deleteSingleItem(path) {
+    selectedItems.clear();
+    selectedItems.add(path);
+    showDeleteModal([path]);
+}
+
 // ── Render Directory ───────────────────────────────────
 
 function renderDir(data) {
     const entries = data.entries;
     const folderPerms = data.folder_permissions || {};
     const canWrite = folderPerms.write;
-    const canDelete = folderPerms.delete;
+    // 使用后端返回的 can_delete（基于白名单检查）
+    const dirCanDelete = data.can_delete || false;
     
     currentDirPath = data.path;
     currentDirWritable = canWrite;
-    currentDirCanDelete = canDelete;
     selectedItems.clear();
     
     // 工具栏
@@ -841,8 +901,9 @@ function renderDir(data) {
         toolbarHtml += '<div class="action-row">';
         toolbarHtml += `<button class="toolbar-btn" onclick="toggleSelectAll()" title="全选/取消全选">全选</button>`;
         toolbarHtml += `<button class="toolbar-btn btn-download" id="downloadSelectedBtn" onclick="downloadSelected()" disabled>下载选中</button>`;
-        if (canDelete) {
-            toolbarHtml += `<button class="toolbar-btn btn-delete" id="deleteSelectedBtn" onclick="deleteSelected()" disabled>删除</button>`;
+        // 只有当前目录在白名单中才显示批量删除按钮
+        if (dirCanDelete) {
+            toolbarHtml += `<button class="toolbar-btn btn-delete" id="deleteSelectedBtn" onclick="deleteSelected()" disabled>删除选中</button>`;
         }
         toolbarHtml += '</div>';
     }
@@ -867,13 +928,18 @@ function renderDir(data) {
         const modeStr = perms.mode || (isDir ? 'drwxr-xr-x' : '-rw-r--r--');
         const octalStr = perms.octal || (isDir ? '0o755' : '0o644');
         const owner = perms.owner || '-';
+        const entryCanDelete = e.can_delete || false;
         
         const permDisplay = `<span class="perm-link" style="font-family:monospace;font-size:0.82em;cursor:pointer;color:#58a6ff" onclick="showChmodModal('${fullPath.replace(/'/g, "\\'")}', '${octalStr}', '${escHtml(e.name)}')">${escHtml(modeStr)}</span>`;
         
-        const actions = `<button class="action-btn btn-download-row" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')" title="下载">⬇ 下载</button>`;
+        // 操作按钮：下载按钮 + 删除按钮（如果在白名单中）
+        let actions = `<button class="action-btn btn-download-row" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')" title="下载">⬇</button>`;
+        if (entryCanDelete) {
+            actions += `<button class="action-btn" style="color:#f85149;" onclick="event.stopPropagation();deleteSingleItem('${fullPath.replace(/'/g, "\\'")}')" title="删除">🗑</button>`;
+        }
         
         return `<tr>
-            <td class="checkbox-cell"><input type="checkbox" class="item-checkbox" data-path="${escHtml(fullPath)}" onchange="toggleItem('${fullPath.replace(/'/g, "\\'")}', this.checked)"></td>
+            <td class="checkbox-cell"><input type="checkbox" class="item-checkbox" data-path="${escHtml(fullPath)}" data-can-delete="${entryCanDelete}" onchange="toggleItem('${fullPath.replace(/'/g, "\\'")}', this.checked)"></td>
             <td><span class="dir-icon">${icon}</span><span class="${nameClass}" onclick="setPath('${fullPath.replace(/'/g, "\\'")}')">${escHtml(e.name)}</span></td>
             <td class="file-size">${isDir ? '-' : formatSize(e.size)}</td>
             <td style="color:#484f58;font-size:0.8em">${isDir ? 'dir' : 'file'}</td>
@@ -1153,6 +1219,76 @@ function getFileIcon(name) {
 
 function startMonitor() { if (monitorTimer) return; fetchSystemInfo(); monitorTimer = setInterval(fetchSystemInfo, 3000); }
 function stopMonitor() { if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; } }
+
+// ── Whitelist Management ──────────────────────────────
+
+async function loadWhitelist() {
+    try {
+        const resp = await fetch('/api/whitelist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        if (resp.status === 401) { showLogin(); return; }
+        const data = await resp.json();
+        renderWhitelist(data.whitelist || []);
+    } catch (e) {
+        document.getElementById('whitelistContainer').innerHTML = `<div class="state-box" style="padding:20px;"><div class="state-msg error">加载失败: ${escHtml(e.message)}</div></div>`;
+    }
+}
+
+function renderWhitelist(whitelist) {
+    const container = document.getElementById('whitelistContainer');
+    if (!whitelist || whitelist.length === 0) {
+        container.innerHTML = `<div class="state-box" style="padding:20px;"><div class="state-msg" style="color:#8b949e;">白名单为空，删除功能将被禁用</div></div>`;
+        return;
+    }
+    const items = whitelist.map((path, idx) => `
+        <div class="mon-row" style="align-items:center;padding:10px 12px;">
+            <span style="font-family:monospace;color:#58a6ff;flex:1;">${escHtml(path)}</span>
+            <button class="action-btn" style="color:#f85149;" onclick="removeWhitelistPath('${escHtml(path).replace(/'/g, "\\'")}')" title="移除">移除</button>
+        </div>
+    `).join('');
+    container.innerHTML = `<div style="border:1px solid #21262d;border-radius:6px;overflow:hidden;">${items}</div>`;
+}
+
+async function addWhitelistPath() {
+    const input = document.getElementById('newWhitelistPath');
+    const path = input.value.trim();
+    if (!path) { showNotification('请输入路径', 'error'); return; }
+    try {
+        const resp = await fetch('/api/whitelist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add', path })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            input.value = '';
+            renderWhitelist(data.whitelist);
+            showNotification('添加成功', 'success');
+        } else {
+            showNotification(data.error || '添加失败', 'error');
+        }
+    } catch (e) {
+        showNotification('添加失败: ' + e.message, 'error');
+    }
+}
+
+async function removeWhitelistPath(path) {
+    try {
+        const resp = await fetch('/api/whitelist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'remove', path })
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            renderWhitelist(data.whitelist);
+            showNotification('移除成功', 'success');
+        } else {
+            showNotification(data.error || '移除失败', 'error');
+        }
+    } catch (e) {
+        showNotification('移除失败: ' + e.message, 'error');
+    }
+}
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && currentTab === 'monitor') stopMonitor();

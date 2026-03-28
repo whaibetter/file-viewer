@@ -19,21 +19,93 @@ import grp
 import zipfile
 import io
 import shutil
+import yaml
 from pathlib import Path
 
-# === Configuration ===
-SESSION_TIMEOUT = 3600
+# === 配置文件路径 ===
+CONFIG_FILE = Path("/etc/file-viewer/config.yaml")
+PROJECT_CONFIG_FILE = Path(__file__).parent / "config.yaml"
+
+
+def load_config() -> dict:
+    """加载 YAML 配置文件"""
+    # 优先使用系统配置，其次使用项目目录配置
+    config_path = CONFIG_FILE if CONFIG_FILE.exists() else PROJECT_CONFIG_FILE
+    
+    if config_path.exists():
+        try:
+            with config_path.open("r", encoding="utf-8") as f:
+                return yaml.safe_load(f) or {}
+        except Exception as e:
+            print(f"Warning: Failed to load config from {config_path}: {e}")
+    
+    return {}
+
+
+# 加载配置
+_config = load_config()
+
+# === 从配置文件读取设置 ===
+_server_cfg = _config.get("server", {})
+_storage_cfg = _config.get("storage", {})
+_download_cfg = _config.get("download_limits", {})
+
+# 服务器配置
+SERVER_HOST = _server_cfg.get("host", "127.0.0.1")
+SERVER_PORT = _server_cfg.get("port", 9001)
+SESSION_TIMEOUT = _server_cfg.get("session_timeout", 3600)
 SECRET_KEY = secrets.token_bytes(32)
-PASSWORD_FILE = Path("/etc/file-viewer.passwd")
+
+# 数据存储路径
+PASSWORD_FILE = Path(_storage_cfg.get("password_file", "/etc/file-viewer.passwd"))
+WHITELIST_FILE = Path(_storage_cfg.get("whitelist_file", "/etc/file-viewer-whitelist.json"))
+
+# 删除白名单
+DELETE_WHITELIST = _config.get("delete_whitelist", ["/tmp", "/var/tmp"])
+
+# 文件夹权限配置
+FOLDER_PERMISSIONS = _config.get("folder_permissions", {})
+DEFAULT_PERMISSIONS = _config.get("default_permissions", {"read": True, "write": True})
 
 # 下载限制配置
-MAX_SINGLE_FILE_SIZE = 100 * 1024 * 1024  # 单文件最大 100MB
-MAX_TOTAL_DOWNLOAD_SIZE = 200 * 1024 * 1024  # 批量下载总大小最大 200MB
-MAX_FILES_IN_ZIP = 500  # zip 中最多 500 个文件
-MAX_DIR_DEPTH = 20  # 目录最大深度
+MAX_SINGLE_FILE_SIZE = _download_cfg.get("max_single_file_size", 100 * 1024 * 1024)
+MAX_TOTAL_DOWNLOAD_SIZE = _download_cfg.get("max_total_download_size", 200 * 1024 * 1024)
+MAX_FILES_IN_ZIP = _download_cfg.get("max_files_in_zip", 500)
+MAX_DIR_DEPTH = _download_cfg.get("max_dir_depth", 20)
+MAX_FILE_PREVIEW_SIZE = _download_cfg.get("max_file_preview_size", 2 * 1024 * 1024)
 
-FOLDER_PERMISSIONS = {}
-DEFAULT_PERMISSIONS = {"read": True, "write": True, "delete": False}
+
+# === 白名单管理 ===
+def load_whitelist() -> list:
+    """加载删除白名单"""
+    try:
+        if WHITELIST_FILE.exists():
+            with WHITELIST_FILE.open("r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass    return DELETE_WHITELIST.copy()
+
+
+def save_whitelist(whitelist: list) -> bool:
+    """保存删除白名单"""
+    try:
+        with WHITELIST_FILE.open("w", encoding="utf-8") as f:
+            json.dump(whitelist, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception:
+        return False
+
+
+def is_in_whitelist(path: str) -> bool:
+    """检查路径是否在白名单中"""
+    whitelist = load_whitelist()
+    normalized_path = os.path.normpath(path)
+    for allowed_path in whitelist:
+        normalized_allowed = os.path.normpath(allowed_path)
+        # 检查路径是否以白名单路径开头
+        if normalized_path == normalized_allowed or normalized_path.startswith(normalized_allowed + os.sep):
+            return True
+    return False
 
 
 def get_file_permissions(path: str) -> dict:
@@ -379,6 +451,9 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
         elif parsed.path == "/api/file/download/batch":
             if self.require_auth():
                 self._handle_batch_download()
+        elif parsed.path == "/api/whitelist":
+            if self.require_auth():
+                self._handle_whitelist()
         else:
             self.send_json(404, {"error": "Not Found"})
 
@@ -424,14 +499,18 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
                         "type": "dir" if os.path.isdir(full) else "file",
                         "size": os.path.getsize(full) if os.path.isfile(full) else None,
                         "permissions": get_file_permissions(full),
+                        "can_delete": is_in_whitelist(full),
                     })
-                self.send_json(200, {"type": "directory", "path": file_path, "entries": entries, "permissions": get_file_permissions(file_path), "folder_permissions": folder_perms})
+                # 检查当前目录是否在白名单中（用于批量删除按钮）
+                dir_can_delete = is_in_whitelist(file_path)
+                self.send_json(200, {"type": "directory", "path": file_path, "entries": entries, "permissions": get_file_permissions(file_path), "folder_permissions": folder_perms, "can_delete": dir_can_delete})
             except PermissionError:
                 self.send_json(403, {"error": "Permission denied"})
             return
         size = os.path.getsize(file_path)
-        if size > 2 * 1024 * 1024:
-            self.send_json(413, {"error": f"File too large ({size} bytes). Limit is 2 MB."})
+        if size > MAX_FILE_PREVIEW_SIZE:
+            limit_mb = MAX_FILE_PREVIEW_SIZE // (1024 * 1024)
+            self.send_json(413, {"error": f"File too large ({size} bytes). Limit is {limit_mb} MB."})
             return
         try:
             with open(file_path, "rb") as f:
@@ -626,8 +705,13 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
                 self.send_json(400, {"error": "Missing 'paths' parameter"})
                 return
             deleted, failed = [], []
+            whitelist = load_whitelist()
             for file_path in paths:
                 file_path = os.path.normpath(file_path)
+                # 检查白名单
+                if not is_in_whitelist(file_path):
+                    failed.append({"path": file_path, "error": "路径不在删除白名单中"})
+                    continue
                 allowed, reason = check_permission(file_path, "delete")
                 if not allowed:
                     failed.append({"path": file_path, "error": reason})
@@ -644,6 +728,71 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
                 except Exception as e:
                     failed.append({"path": file_path, "error": str(e)})
             self.send_json(200, {"success": True, "deleted": deleted, "failed": failed, "message": f"已删除 {len(deleted)} 项" + (f"，{len(failed)} 项失败" if failed else "")})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _handle_whitelist(self):
+        """处理白名单管理请求"""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            if length == 0:
+                # GET 请求 - 获取白名单
+                whitelist = load_whitelist()
+                self.send_json(200, {"whitelist": whitelist})
+                return
+            
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            action = data.get("action", "")
+            
+            if action == "add":
+                path = data.get("path", "")
+                if not path:
+                    self.send_json(400, {"error": "Missing 'path' parameter"})
+                    return
+                whitelist = load_whitelist()
+                normalized = os.path.normpath(path)
+                if normalized not in [os.path.normpath(p) for p in whitelist]:
+                    whitelist.append(normalized)
+                    if save_whitelist(whitelist):
+                        self.send_json(200, {"success": True, "whitelist": whitelist})
+                    else:
+                        self.send_json(500, {"error": "保存白名单失败"})
+                else:
+                    self.send_json(200, {"success": True, "whitelist": whitelist, "message": "路径已存在于白名单中"})
+            
+            elif action == "remove":
+                path = data.get("path", "")
+                if not path:
+                    self.send_json(400, {"error": "Missing 'path' parameter"})
+                    return
+                whitelist = load_whitelist()
+                normalized = os.path.normpath(path)
+                new_whitelist = [p for p in whitelist if os.path.normpath(p) != normalized]
+                if len(new_whitelist) < len(whitelist):
+                    if save_whitelist(new_whitelist):
+                        self.send_json(200, {"success": True, "whitelist": new_whitelist})
+                    else:
+                        self.send_json(500, {"error": "保存白名单失败"})
+                else:
+                    self.send_json(200, {"success": True, "whitelist": whitelist, "message": "路径不在白名单中"})
+            
+            elif action == "set":
+                whitelist = data.get("whitelist", [])
+                if not isinstance(whitelist, list):
+                    self.send_json(400, {"error": "Invalid whitelist format"})
+                    return
+                # 规范化所有路径
+                normalized_whitelist = [os.path.normpath(p) for p in whitelist if p]
+                if save_whitelist(normalized_whitelist):
+                    self.send_json(200, {"success": True, "whitelist": normalized_whitelist})
+                else:
+                    self.send_json(500, {"error": "保存白名单失败"})
+            
+            else:
+                # 默认返回当前白名单
+                whitelist = load_whitelist()
+                self.send_json(200, {"whitelist": whitelist})
+        
         except Exception as e:
             self.send_json(500, {"error": str(e)})
 
@@ -760,6 +909,6 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = http.server.HTTPServer(("127.0.0.1", 9001), FileViewerHandler)
-    print("File viewer backend listening on 127.0.0.1:9001")
+    server = http.server.HTTPServer((SERVER_HOST, SERVER_PORT), FileViewerHandler)
+    print(f"File viewer backend listening on {SERVER_HOST}:{SERVER_PORT}")
     server.serve_forever()
