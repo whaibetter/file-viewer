@@ -444,6 +444,144 @@
         .settings-panel-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1999; display: none; }
         .settings-panel-overlay.visible { display: block; }
         
+        /* ── Terminal ────────────────────────────────────── */
+        .terminal-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0d1117;
+            overflow: hidden;
+        }
+        
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            flex-shrink: 0;
+        }
+        
+        .terminal-title {
+            font-weight: 600;
+            color: #58a6ff;
+            font-size: 0.95em;
+        }
+        
+        .terminal-cwd {
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            color: #8b949e;
+            font-size: 0.85em;
+            background: #21262d;
+            padding: 2px 10px;
+            border-radius: 4px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .terminal-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .terminal-btn:hover { background: #30363d; border-color: #8b949e; }
+        
+        .terminal-quick-cmds {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 16px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .quick-cmd-label {
+            color: #8b949e;
+            font-size: 0.8em;
+            margin-right: 4px;
+        }
+        
+        .quick-cmd-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #58a6ff;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.78em;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.15s;
+        }
+        .quick-cmd-btn:hover { background: #30363d; border-color: #58a6ff; }
+        
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.88em;
+            line-height: 1.5;
+            background: #0d1117;
+        }
+        
+        .terminal-welcome {
+            padding: 16px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .terminal-line {
+            margin-bottom: 2px;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+        
+        .terminal-line.cmd { color: #58a6ff; }
+        .terminal-line.output { color: #c9d1d9; }
+        .terminal-line.error { color: #f85149; }
+        .terminal-line.success { color: #3fb950; }
+        .terminal-line.prompt { color: #8b949e; }
+        
+        .terminal-input-area {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            background: #161b22;
+            border-top: 1px solid #30363d;
+            flex-shrink: 0;
+        }
+        
+        .terminal-prompt {
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            color: #3fb950;
+            font-size: 0.88em;
+            margin-right: 8px;
+            white-space: nowrap;
+        }
+        
+        .terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #c9d1d9;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.88em;
+            outline: none;
+        }
+        .terminal-input::placeholder { color: #484f58; }
+        
         /* Settings Tabs */
         .settings-tabs { display: flex; gap: 0; border-bottom: 1px solid #30363d; }
         .settings-tab { flex: 1; padding: 12px 8px; background: none; border: none; color: #8b949e; font-size: 0.85em; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
@@ -722,6 +860,18 @@
             .proc-card-stat-value.cpu { color: #f85149; }
             .proc-card-stat-value.mem { color: #58a6ff; }
 
+            /* Terminal */
+            .terminal-header { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+            .terminal-title { font-size: 0.85em; }
+            .terminal-cwd { font-size: 0.78em; }
+            .terminal-quick-cmds { padding: 6px 12px; }
+            .quick-cmd-label { display: none; }
+            .quick-cmd-btn { padding: 3px 8px; font-size: 0.72em; }
+            .terminal-output { padding: 10px 12px; font-size: 0.82em; }
+            .terminal-input-area { padding: 8px 12px; }
+            .terminal-prompt { font-size: 0.8em; }
+            .terminal-input { font-size: 0.82em; }
+
             /* Checkbox */
             .checkbox-cell { width: 32px; }
             .checkbox-cell input[type="checkbox"] { width: 18px; height: 18px; }
@@ -778,6 +928,7 @@
     <div class="nav-tabs">
         <button class="nav-tab active" id="tabFiles" onclick="switchTab('files')">文件浏览</button>
         <button class="nav-tab" id="tabMonitor" onclick="switchTab('monitor')">系统监控</button>
+        <button class="nav-tab" id="tabTerminal" onclick="switchTab('terminal')">终端</button>
     </div>
     <button class="settings-btn" onclick="openSettingsPanel()" title="设置">⚙️</button>
     <button class="logout-btn" onclick="doLogout()">退出登录</button>
@@ -817,6 +968,45 @@
         <div class="state-box">
             <div class="state-icon">⏳</div>
             <div class="state-title">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ TERMINAL SECTION ============ -->
+<div id="sectionTerminal" class="section-hidden" style="flex:1;display:flex;flex-direction:column;">
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <span class="terminal-title">🖥️ Web Terminal</span>
+            <span class="terminal-cwd" id="terminalCwd">/</span>
+            <button class="terminal-btn" onclick="clearTerminal()" title="清屏">清屏</button>
+        </div>
+        <div class="terminal-quick-cmds">
+            <span class="quick-cmd-label">快捷命令：</span>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('ls -la')">ls -la</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('pwd')">pwd</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('df -h')">df -h</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('free -h')">free -h</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('top -bn1 | head -20')">top</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('ps aux --sort=-%mem | head -10')">内存占用</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('netstat -tlnp')">端口</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('tail -50 /var/log/syslog')">系统日志</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('systemctl status nginx')">nginx状态</button>
+            <button class="quick-cmd-btn" onclick="execQuickCmd('docker ps -a')">docker列表</button>
+        </div>
+        <div class="terminal-output" id="terminalOutput">
+            <div class="terminal-welcome">
+                <div style="color:#58a6ff;font-weight:600;margin-bottom:8px;">欢迎使用 Web Terminal</div>
+                <div style="color:#8b949e;font-size:0.85em;">
+                    • 输入命令后按 Enter 执行<br>
+                    • 使用 ↑/↓ 浏览历史命令<br>
+                    • 部分危险命令已被禁止（如 rm -rf /）<br>
+                    • 命令执行超时限制：30秒
+                </div>
+            </div>
+        </div>
+        <div class="terminal-input-area">
+            <span class="terminal-prompt" id="terminalPrompt">root@server:/$</span>
+            <input type="text" class="terminal-input" id="terminalInput" placeholder="输入命令..." autocomplete="off" spellcheck="false" />
         </div>
     </div>
 </div>
@@ -1097,17 +1287,29 @@ function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
     document.getElementById('tabMonitor').classList.toggle('active', tab === 'monitor');
+    document.getElementById('tabTerminal').classList.toggle('active', tab === 'terminal');
     const sf = document.getElementById('sectionFiles');
     const sm = document.getElementById('sectionMonitor');
+    const st = document.getElementById('sectionTerminal');
     if (tab === 'files') {
         sf.classList.remove('section-hidden');
         sm.classList.add('section-hidden');
+        st.classList.add('section-hidden');
         stopMonitor();
     } else if (tab === 'monitor') {
         sf.classList.add('section-hidden');
         sm.classList.remove('section-hidden');
+        st.classList.add('section-hidden');
         sm.style.display = 'flex';
         startMonitor();
+    } else if (tab === 'terminal') {
+        sf.classList.add('section-hidden');
+        sm.classList.add('section-hidden');
+        st.classList.remove('section-hidden');
+        st.style.display = 'flex';
+        stopMonitor();
+        // 聚焦终端输入框
+        setTimeout(() => document.getElementById('terminalInput')?.focus(), 100);
     }
 }
 
@@ -1978,6 +2180,163 @@ function renderMonitor(d) {
     html += '</div>';
     document.getElementById('monitorContent').innerHTML = html;
 }
+
+// ── Terminal ──────────────────────────────────────────
+
+let terminalCwd = '/';
+let terminalHistory = [];
+let historyIndex = -1;
+const MAX_HISTORY = 100;
+
+function execQuickCmd(cmd) {
+    document.getElementById('terminalInput').value = cmd;
+    executeCommand();
+}
+
+function clearTerminal() {
+    const output = document.getElementById('terminalOutput');
+    output.innerHTML = `<div class="terminal-welcome">
+        <div style="color:#58a6ff;font-weight:600;margin-bottom:8px;">终端已清屏</div>
+    </div>`;
+}
+
+function updateTerminalPrompt() {
+    const prompt = document.getElementById('terminalPrompt');
+    const cwdShort = terminalCwd.length > 30 ? '...' + terminalCwd.slice(-27) : terminalCwd;
+    prompt.textContent = `root@server:${cwdShort}$`;
+    document.getElementById('terminalCwd').textContent = terminalCwd;
+}
+
+function appendOutput(text, className = 'output') {
+    const output = document.getElementById('terminalOutput');
+    const line = document.createElement('div');
+    line.className = `terminal-line ${className}`;
+    line.textContent = text;
+    output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+}
+
+function appendHtml(html) {
+    const output = document.getElementById('terminalOutput');
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    output.appendChild(div);
+    output.scrollTop = output.scrollHeight;
+}
+
+async function executeCommand() {
+    const input = document.getElementById('terminalInput');
+    const cmd = input.value.trim();
+    
+    if (!cmd) return;
+    
+    // 添加到历史
+    terminalHistory.push(cmd);
+    if (terminalHistory.length > MAX_HISTORY) {
+        terminalHistory.shift();
+    }
+    historyIndex = terminalHistory.length;
+    
+    // 显示命令
+    appendOutput(`$ ${cmd}`, 'cmd');
+    input.value = '';
+    
+    // 内置命令处理
+    if (cmd === 'clear') {
+        clearTerminal();
+        return;
+    }
+    
+    if (cmd === 'exit') {
+        appendOutput('提示：使用浏览器标签页关闭此页面', 'prompt');
+        return;
+    }
+    
+    // 发送到服务器执行
+    try {
+        const resp = await fetch('/api/terminal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: cmd, cwd: terminalCwd })
+        });
+        
+        const data = await resp.json();
+        
+        if (resp.ok && data.success) {
+            if (data.output) {
+                // 处理输出，支持ANSI颜色码
+                let output = data.output
+                    .replace(/\x1b\[0m/g, '</span>')
+                    .replace(/\x1b\[31m/g, '<span style="color:#f85149">')
+                    .replace(/\x1b\[32m/g, '<span style="color:#3fb950">')
+                    .replace(/\x1b\[33m/g, '<span style="color:#f0883e">')
+                    .replace(/\x1b\[34m/g, '<span style="color:#58a6ff">')
+                    .replace(/\x1b\[35m/g, '<span style="color:#bc8cff">')
+                    .replace(/\x1b\[36m/g, '<span style="color:#39c5cf">')
+                    .replace(/\x1b\[1m/g, '<span style="font-weight:bold">');
+                
+                // 按行输出
+                const lines = output.split('\n');
+                lines.forEach(line => {
+                    if (line || lines.length === 1) {
+                        appendHtml(`<div class="terminal-line output">${escHtml(line).replace(/&lt;span/g, '<span').replace(/&gt;/g, '>')}</div>`);
+                    }
+                });
+            }
+            
+            // 更新工作目录
+            if (data.cwd && data.cwd !== terminalCwd) {
+                terminalCwd = data.cwd;
+                updateTerminalPrompt();
+            }
+        } else {
+            appendOutput(data.error || '命令执行失败', 'error');
+        }
+    } catch (e) {
+        appendOutput(`网络错误: ${e.message}`, 'error');
+    }
+}
+
+// 终端输入事件
+document.addEventListener('DOMContentLoaded', () => {
+    const terminalInput = document.getElementById('terminalInput');
+    if (terminalInput) {
+        terminalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                executeCommand();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = terminalHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < terminalHistory.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = terminalHistory[historyIndex];
+                } else {
+                    historyIndex = terminalHistory.length;
+                    terminalInput.value = '';
+                }
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                // 简单的Tab补全提示
+                const val = terminalInput.value;
+                if (val.startsWith('cd ') || val.startsWith('ls ') || val.includes(' ')) {
+                    const parts = val.split(' ');
+                    const lastPart = parts[parts.length - 1];
+                    if (lastPart) {
+                        appendOutput(`[Tab补全] 提示: ${lastPart}*`, 'prompt');
+                    }
+                }
+            }
+        });
+    }
+    
+    // 初始化提示符
+    updateTerminalPrompt();
+});
 
 // ── Init ──────────────────────────────────────────────
 

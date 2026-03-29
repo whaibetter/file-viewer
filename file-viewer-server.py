@@ -458,6 +458,9 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
         elif parsed.path == "/api/whitelist":
             if self.require_auth():
                 self._handle_whitelist()
+        elif parsed.path == "/api/terminal":
+            if self.require_auth():
+                self._handle_terminal()
         else:
             self.send_json(404, {"error": "Not Found"})
 
@@ -943,6 +946,91 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
             self.send_json(200, {"success": True, "path": dest_path, "filename": filename, "size": os.path.getsize(dest_path)})
         except PermissionError:
             self.send_json(403, {"error": "Permission denied"})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _handle_terminal(self):
+        """处理终端命令执行请求"""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            command = data.get("command", "")
+            cwd = data.get("cwd", "/")
+            
+            if not command:
+                self.send_json(400, {"error": "Missing 'command' parameter"})
+                return
+            
+            # 安全检查：禁止某些危险命令
+            dangerous_patterns = [
+                r'\brm\s+-rf\s+/(?!\w)',  # rm -rf / 但允许 rm -rf /tmp
+                r'\bmkfs\b',
+                r'\bdd\s+if=.*of=/dev/',
+                r'\b:\(\)\{.*;\};\s*:\(\)',  # fork bomb
+                r'\bchmod\s+[-+]?[0-7]*\s+/',
+                r'\bchown\s+.*\s+/',
+                r'\bshutdown\b',
+                r'\breboot\b',
+                r'\binit\s+[06]',
+                r'\bhalt\b',
+                r'\bpoweroff\b',
+            ]
+            
+            for pattern in dangerous_patterns:
+                if re.search(pattern, command, re.IGNORECASE):
+                    self.send_json(403, {"error": f"命令被禁止执行（安全限制）"})
+                    return
+            
+            # 规范化工作目录
+            cwd = os.path.normpath(cwd)
+            if not os.path.isdir(cwd):
+                cwd = "/"
+            
+            # 执行命令
+            try:
+                result = subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=cwd,
+                    env={**os.environ, "TERM": "xterm-256color", "LANG": "en_US.UTF-8"}
+                )
+                
+                output = result.stdout
+                if result.stderr:
+                    output += result.stderr
+                
+                # 获取当前工作目录（如果命令中包含cd）
+                new_cwd = cwd
+                if command.strip().startswith("cd ") or "cd " in command:
+                    try:
+                        pwd_result = subprocess.run(
+                            "pwd",
+                            shell=True,
+                            capture_output=True,
+                            text=True,
+                            timeout=5,
+                            cwd=cwd
+                        )
+                        if pwd_result.returncode == 0:
+                            new_cwd = pwd_result.stdout.strip()
+                    except:
+                        pass
+                
+                self.send_json(200, {
+                    "success": True,
+                    "output": output,
+                    "exit_code": result.returncode,
+                    "cwd": new_cwd
+                })
+                
+            except subprocess.TimeoutExpired:
+                self.send_json(408, {"error": "命令执行超时（30秒限制）"})
+            except Exception as e:
+                self.send_json(500, {"error": f"命令执行失败: {str(e)}"})
+                
         except Exception as e:
             self.send_json(500, {"error": str(e)})
 
