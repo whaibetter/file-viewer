@@ -21,28 +21,22 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # 1. 复制后端服务
-echo -e "${CYAN}[1/5] 安装后端服务...${RESET}"
+echo -e "${CYAN}[1/4] 安装后端服务...${RESET}"
 cp "$SCRIPT_DIR/file-viewer-server.py" /usr/local/bin/
 chmod 644 /usr/local/bin/file-viewer-server.py
 
 # 2. 复制管理脚本
-echo -e "${CYAN}[2/5] 安装管理脚本...${RESET}"
+echo -e "${CYAN}[2/4] 安装管理脚本...${RESET}"
 cp "$SCRIPT_DIR/file-viewer" /usr/local/bin/
 chmod 755 /usr/local/bin/file-viewer
 
 # 3. 安装 systemd 服务
-echo -e "${CYAN}[3/5] 安装 systemd 服务...${RESET}"
+echo -e "${CYAN}[3/4] 安装 systemd 服务...${RESET}"
 cp "$SCRIPT_DIR/file-viewer.service" /etc/systemd/system/
 systemctl daemon-reload
 
-# 4. 复制前端页面
-echo -e "${CYAN}[4/5] 安装前端页面...${RESET}"
-mkdir -p /var/www/html
-cp "$SCRIPT_DIR/index.html" /var/www/html/
-chmod 644 /var/www/html/index.html
-
-# 5. 创建密码文件（如果不存在）
-echo -e "${CYAN}[5/5] 初始化密码文件...${RESET}"
+# 4. 创建密码文件（如果不存在）
+echo -e "${CYAN}[4/4] 初始化密码文件...${RESET}"
 if [ ! -f /etc/file-viewer.passwd ]; then
     # 默认密码: admin
     echo -n "admin" | sha256sum | awk '{print $1}' > /etc/file-viewer.passwd
@@ -57,7 +51,7 @@ fi
 echo ""
 echo -e "${CYAN}启用服务...${RESET}"
 systemctl enable file-viewer
-systemctl start file-viewer
+systemctl restart file-viewer
 
 echo ""
 echo -e "${GREEN}${BOLD}安装完成！${RESET}"

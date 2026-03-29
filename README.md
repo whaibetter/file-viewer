@@ -151,14 +151,14 @@ file-viewer logs -f    # 实时查看日志
 
 ## Nginx 配置
 
-后端服务运行在 `127.0.0.1:9001`，需要 Nginx 反向代理：
+后端服务运行在 `127.0.0.1:9001`，需要 Nginx 反向代理。将 root 指向项目目录即可直接使用：
 
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
 
-    root /var/www/html;
+    root /home/file-viewer;  # 指向项目目录
     index index.html;
 
     # API 代理
@@ -174,6 +174,8 @@ server {
     }
 }
 ```
+
+这样修改 `index.html` 后无需复制，刷新浏览器即可看到更新。
 
 ## 安全建议
 
