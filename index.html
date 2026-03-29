@@ -977,18 +977,8 @@
                 </button>
             </div>
         </div>
-        <div class="terminal-quick-cmds">
-            <span class="quick-cmd-label">快捷命令：</span>
-            <button class="quick-cmd-btn" onclick="termExec('ls -la --color=auto')">ls -la</button>
-            <button class="quick-cmd-btn" onclick="termExec('pwd')">pwd</button>
-            <button class="quick-cmd-btn" onclick="termExec('df -h')">df -h</button>
-            <button class="quick-cmd-btn" onclick="termExec('free -h')">free -h</button>
-            <button class="quick-cmd-btn" onclick="termExec('top -bn1 | head -15')">top</button>
-            <button class="quick-cmd-btn" onclick="termExec('ps aux --sort=-%mem | head -10')">内存</button>
-            <button class="quick-cmd-btn" onclick="termExec('ss -tlnp')">端口</button>
-            <button class="quick-cmd-btn" onclick="termExec('journalctl -u nginx -n 20 --no-pager')">nginx日志</button>
-            <button class="quick-cmd-btn" onclick="termExec('docker ps -a')">docker</button>
-            <button class="quick-cmd-btn" onclick="termExec('htop 2>/dev/null || top -bn1 | head -20')">系统</button>
+        <div class="terminal-quick-cmds" id="terminalQuickCmds">
+            <!-- 由 renderQuickCmds() 动态渲染 -->
         </div>
         <div class="terminal-body" id="terminalBody">
             <div id="xterm"></div>
@@ -1008,6 +998,7 @@
     <div class="settings-tabs">
         <button class="settings-tab active" onclick="switchSettingsTab('whitelist')">删除白名单</button>
         <button class="settings-tab" onclick="switchSettingsTab('quickpaths')">快捷路径</button>
+        <button class="settings-tab" onclick="switchSettingsTab('quickcmds')">快捷命令</button>
     </div>
     
     <div class="settings-content">
@@ -1053,6 +1044,26 @@
                 <button class="btn" onclick="resetQuickPathsToDefault()" style="font-size:0.8em;">恢复默认快捷路径</button>
             </div>
         </div>
+        
+        <!-- 快捷命令标签 -->
+        <div id="settingsTabQuickcmds" class="settings-tab-body">
+            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">自定义终端快捷命令按钮</p>
+            <div class="quick-path-form">
+                <input type="text" id="newQuickCmdInput" class="path-input" placeholder="命令，如 ls -la">
+                <input type="text" id="newQuickCmdNameInput" class="path-input" placeholder="显示名称">
+                <button class="btn success" onclick="addQuickCmdFromPanel()">添加</button>
+            </div>
+            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;max-height:400px;overflow-y:auto;">
+                <div id="quickCmdsSettingsContainer">
+                    <div class="state-box" style="padding:20px;">
+                        <div class="state-msg">加载中...</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:12px;">
+                <button class="btn" onclick="resetQuickCmdsToDefault()" style="font-size:0.8em;">恢复默认快捷命令</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1080,6 +1091,20 @@ const DEFAULT_QUICK_PATHS = [
     { path: '/proc/meminfo', name: '/proc/meminfo' },
     { path: '/etc/passwd', name: '/etc/passwd' },
     { path: '/etc/hosts', name: '/etc/hosts' }
+];
+
+// 默认快捷命令配置
+const DEFAULT_QUICK_CMDS = [
+    { cmd: 'ls -la --color=auto', name: 'ls -la' },
+    { cmd: 'pwd', name: 'pwd' },
+    { cmd: 'df -h', name: 'df -h' },
+    { cmd: 'free -h', name: 'free -h' },
+    { cmd: 'top -bn1 | head -15', name: 'top' },
+    { cmd: 'ps aux --sort=-%mem | head -10', name: '内存' },
+    { cmd: 'ss -tlnp', name: '端口' },
+    { cmd: 'journalctl -u nginx -n 20 --no-pager', name: 'nginx日志' },
+    { cmd: 'docker ps -a', name: 'docker' },
+    { cmd: 'htop 2>/dev/null || top -bn1 | head -20', name: '系统' }
 ];
 
 // 获取快捷路径（从 localStorage 或使用默认值）
@@ -1115,6 +1140,10 @@ function switchSettingsTab(tab) {
         document.querySelector('.settings-tab:nth-child(2)').classList.add('active');
         document.getElementById('settingsTabQuickpaths').classList.add('active');
         renderQuickPathsSettings();
+    } else if (tab === 'quickcmds') {
+        document.querySelector('.settings-tab:nth-child(3)').classList.add('active');
+        document.getElementById('settingsTabQuickcmds').classList.add('active');
+        renderQuickCmdsSettings();
     }
 }
 
@@ -1187,6 +1216,104 @@ function resetQuickPathsToDefault() {
         renderQuickPathsSettings();
         renderQuickPaths();
         showToast('已恢复默认快捷路径', 'success');
+    }
+}
+
+// ── 快捷命令管理 ────────────────────────────────────
+
+// 获取快捷命令（从 localStorage 或使用默认值）
+function getQuickCmds() {
+    const saved = localStorage.getItem('quickCmds');
+    return saved ? JSON.parse(saved) : DEFAULT_QUICK_CMDS;
+}
+
+// 保存快捷命令到 localStorage
+function saveQuickCmds(cmds) {
+    localStorage.setItem('quickCmds', JSON.stringify(cmds));
+}
+
+// 渲染终端快捷命令按钮
+function renderQuickCmds() {
+    const cmds = getQuickCmds();
+    const container = document.getElementById('terminalQuickCmds');
+    if (!container) return;
+    
+    const html = cmds.map(c => 
+        `<button class="quick-cmd-btn" onclick="termExec('${c.cmd.replace(/'/g, "\\'")}')">${escHtml(c.name)}</button>`
+    ).join('');
+    
+    container.innerHTML = '<span class="quick-cmd-label">快捷命令：</span>' + html;
+}
+
+// 渲染快捷命令设置列表
+function renderQuickCmdsSettings() {
+    const cmds = getQuickCmds();
+    const container = document.getElementById('quickCmdsSettingsContainer');
+    
+    if (cmds.length === 0) {
+        container.innerHTML = `<div class="state-box" style="padding:20px;"><div class="state-msg">暂无快捷命令</div></div>`;
+        return;
+    }
+    
+    container.innerHTML = cmds.map((c, i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #21262d;">
+            <div style="flex:1;min-width:0;">
+                <div style="color:#e6edf3;font-size:0.9em;">${escHtml(c.name)}</div>
+                <div style="color:#8b949e;font-size:0.78em;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(c.cmd)}</div>
+            </div>
+            <button class="action-btn" style="color:#f85149;margin-left:12px;" onclick="removeQuickCmd(${i})">删除</button>
+        </div>
+    `).join('');
+}
+
+// 添加快捷命令
+function addQuickCmdFromPanel() {
+    const cmdInput = document.getElementById('newQuickCmdInput');
+    const nameInput = document.getElementById('newQuickCmdNameInput');
+    const cmd = cmdInput.value.trim();
+    const name = nameInput.value.trim() || cmd;
+    
+    if (!cmd) {
+        showNotification('请输入命令', 'error');
+        return;
+    }
+    
+    const cmds = getQuickCmds();
+    
+    // 检查是否已存在
+    if (cmds.some(c => c.cmd === cmd)) {
+        showNotification('该命令已存在', 'error');
+        return;
+    }
+    
+    cmds.push({ cmd, name });
+    saveQuickCmds(cmds);
+    
+    cmdInput.value = '';
+    nameInput.value = '';
+    
+    renderQuickCmdsSettings();
+    renderQuickCmds();
+    showNotification('快捷命令已添加', 'success');
+}
+
+// 删除快捷命令
+function removeQuickCmd(index) {
+    const cmds = getQuickCmds();
+    cmds.splice(index, 1);
+    saveQuickCmds(cmds);
+    renderQuickCmdsSettings();
+    renderQuickCmds();
+    showNotification('快捷命令已删除', 'success');
+}
+
+// 恢复默认快捷命令
+function resetQuickCmdsToDefault() {
+    if (confirm('确定要恢复默认快捷命令吗？这将覆盖当前配置。')) {
+        saveQuickCmds(DEFAULT_QUICK_CMDS);
+        renderQuickCmdsSettings();
+        renderQuickCmds();
+        showNotification('已恢复默认快捷命令', 'success');
     }
 }
 
@@ -2586,6 +2713,7 @@ async function doComplete() {
 document.getElementById('pathInput').addEventListener('keydown', e => { if (e.key === 'Enter') loadPath(); });
 document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 renderQuickPaths();  // 初始化快捷路径
+renderQuickCmds();   // 初始化快捷命令
 checkAuth();
 </script>
 
