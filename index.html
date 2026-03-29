@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5/css/xterm.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0/lib/xterm-addon-web-links.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -444,7 +448,7 @@
         .settings-panel-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1999; display: none; }
         .settings-panel-overlay.visible { display: block; }
         
-        /* ── Terminal ────────────────────────────────────── */
+        /* ── Terminal (xterm.js) ─────────────────────────── */
         .terminal-container {
             flex: 1;
             display: flex;
@@ -467,19 +471,30 @@
             font-weight: 600;
             color: #58a6ff;
             font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         
-        .terminal-cwd {
-            font-family: 'Cascadia Code', 'Fira Code', monospace;
-            color: #8b949e;
-            font-size: 0.85em;
-            background: #21262d;
-            padding: 2px 10px;
-            border-radius: 4px;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        .terminal-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(63, 185, 80, 0.15);
+            color: #3fb950;
+        }
+        .terminal-status.disconnected {
+            background: rgba(248, 81, 73, 0.15);
+            color: #f85149;
+        }
+        
+        .terminal-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
         }
         
         .terminal-btn {
@@ -491,6 +506,9 @@
             font-size: 0.8em;
             cursor: pointer;
             transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
         .terminal-btn:hover { background: #30363d; border-color: #8b949e; }
         
@@ -524,63 +542,24 @@
         }
         .quick-cmd-btn:hover { background: #30363d; border-color: #58a6ff; }
         
-        .terminal-output {
+        .terminal-body {
             flex: 1;
-            overflow-y: auto;
-            padding: 12px 16px;
-            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-            font-size: 0.88em;
-            line-height: 1.5;
+            padding: 8px;
             background: #0d1117;
+            overflow: hidden;
         }
         
-        .terminal-welcome {
-            padding: 16px;
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            margin-bottom: 12px;
+        #xterm-terminal {
+            height: 100%;
         }
         
-        .terminal-line {
-            margin-bottom: 2px;
-            word-break: break-all;
-            white-space: pre-wrap;
-        }
-        
-        .terminal-line.cmd { color: #58a6ff; }
-        .terminal-line.output { color: #c9d1d9; }
-        .terminal-line.error { color: #f85149; }
-        .terminal-line.success { color: #3fb950; }
-        .terminal-line.prompt { color: #8b949e; }
-        
-        .terminal-input-area {
-            display: flex;
-            align-items: center;
-            padding: 10px 16px;
-            background: #161b22;
-            border-top: 1px solid #30363d;
+        .terminal-resize-handle {
+            height: 4px;
+            background: #30363d;
+            cursor: ns-resize;
             flex-shrink: 0;
         }
-        
-        .terminal-prompt {
-            font-family: 'Cascadia Code', 'Fira Code', monospace;
-            color: #3fb950;
-            font-size: 0.88em;
-            margin-right: 8px;
-            white-space: nowrap;
-        }
-        
-        .terminal-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: #c9d1d9;
-            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-            font-size: 0.88em;
-            outline: none;
-        }
-        .terminal-input::placeholder { color: #484f58; }
+        .terminal-resize-handle:hover { background: #58a6ff; }
         
         /* Settings Tabs */
         .settings-tabs { display: flex; gap: 0; border-bottom: 1px solid #30363d; }
@@ -863,14 +842,10 @@
             /* Terminal */
             .terminal-header { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
             .terminal-title { font-size: 0.85em; }
-            .terminal-cwd { font-size: 0.78em; }
             .terminal-quick-cmds { padding: 6px 12px; }
             .quick-cmd-label { display: none; }
             .quick-cmd-btn { padding: 3px 8px; font-size: 0.72em; }
-            .terminal-output { padding: 10px 12px; font-size: 0.82em; }
-            .terminal-input-area { padding: 8px 12px; }
-            .terminal-prompt { font-size: 0.8em; }
-            .terminal-input { font-size: 0.82em; }
+            .terminal-body { padding: 4px; }
 
             /* Checkbox */
             .checkbox-cell { width: 32px; }
@@ -976,37 +951,48 @@
 <div id="sectionTerminal" class="section-hidden" style="flex:1;display:flex;flex-direction:column;">
     <div class="terminal-container">
         <div class="terminal-header">
-            <span class="terminal-title">🖥️ Web Terminal</span>
-            <span class="terminal-cwd" id="terminalCwd">/</span>
-            <button class="terminal-btn" onclick="clearTerminal()" title="清屏">清屏</button>
+            <span class="terminal-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                </svg>
+                Terminal
+            </span>
+            <span class="terminal-status" id="terminalStatus">
+                <span style="width:6px;height:6px;background:currentColor;border-radius:50%;"></span>
+                已连接
+            </span>
+            <div class="terminal-actions">
+                <button class="terminal-btn" onclick="terminalClear()" title="清屏">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                    清屏
+                </button>
+                <button class="terminal-btn" onclick="terminalReset()" title="重置">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 4v6h6M23 20v-6h-6"/>
+                        <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+                    </svg>
+                    重置
+                </button>
+            </div>
         </div>
         <div class="terminal-quick-cmds">
             <span class="quick-cmd-label">快捷命令：</span>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('ls -la')">ls -la</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('pwd')">pwd</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('df -h')">df -h</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('free -h')">free -h</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('top -bn1 | head -20')">top</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('ps aux --sort=-%mem | head -10')">内存占用</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('netstat -tlnp')">端口</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('tail -50 /var/log/syslog')">系统日志</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('systemctl status nginx')">nginx状态</button>
-            <button class="quick-cmd-btn" onclick="execQuickCmd('docker ps -a')">docker列表</button>
+            <button class="quick-cmd-btn" onclick="termExec('ls -la --color=auto')">ls -la</button>
+            <button class="quick-cmd-btn" onclick="termExec('pwd')">pwd</button>
+            <button class="quick-cmd-btn" onclick="termExec('df -h')">df -h</button>
+            <button class="quick-cmd-btn" onclick="termExec('free -h')">free -h</button>
+            <button class="quick-cmd-btn" onclick="termExec('top -bn1 | head -15')">top</button>
+            <button class="quick-cmd-btn" onclick="termExec('ps aux --sort=-%mem | head -10')">内存</button>
+            <button class="quick-cmd-btn" onclick="termExec('ss -tlnp')">端口</button>
+            <button class="quick-cmd-btn" onclick="termExec('journalctl -u nginx -n 20 --no-pager')">nginx日志</button>
+            <button class="quick-cmd-btn" onclick="termExec('docker ps -a')">docker</button>
+            <button class="quick-cmd-btn" onclick="termExec('htop 2>/dev/null || top -bn1 | head -20')">系统</button>
         </div>
-        <div class="terminal-output" id="terminalOutput">
-            <div class="terminal-welcome">
-                <div style="color:#58a6ff;font-weight:600;margin-bottom:8px;">欢迎使用 Web Terminal</div>
-                <div style="color:#8b949e;font-size:0.85em;">
-                    • 输入命令后按 Enter 执行<br>
-                    • 使用 ↑/↓ 浏览历史命令<br>
-                    • 部分危险命令已被禁止（如 rm -rf /）<br>
-                    • 命令执行超时限制：30秒
-                </div>
-            </div>
-        </div>
-        <div class="terminal-input-area">
-            <span class="terminal-prompt" id="terminalPrompt">root@server:/$</span>
-            <input type="text" class="terminal-input" id="terminalInput" placeholder="输入命令..." autocomplete="off" spellcheck="false" />
+        <div class="terminal-body" id="terminalBody">
+            <div id="xterm"></div>
         </div>
     </div>
 </div>
@@ -1308,8 +1294,12 @@ function switchTab(tab) {
         st.classList.remove('section-hidden');
         st.style.display = 'flex';
         stopMonitor();
-        // 聚焦终端输入框
-        setTimeout(() => document.getElementById('terminalInput')?.focus(), 100);
+        // 初始化xterm终端
+        if (!term) {
+            setTimeout(() => initTerminal(), 100);
+        } else {
+            setTimeout(() => termFit && termFit.fit(), 100);
+        }
     }
 }
 
@@ -2181,162 +2171,350 @@ function renderMonitor(d) {
     document.getElementById('monitorContent').innerHTML = html;
 }
 
-// ── Terminal ──────────────────────────────────────────
+// ── Terminal (xterm.js) ────────────────────────────────
 
-let terminalCwd = '/';
-let terminalHistory = [];
-let historyIndex = -1;
-const MAX_HISTORY = 100;
+let term = null;
+let termFit = null;
+let termCwd = '/';
+let termHistory = [];
+let termHistoryIndex = -1;
+let termCurrentLine = '';
+let termCursorPos = 0;
 
-function execQuickCmd(cmd) {
-    document.getElementById('terminalInput').value = cmd;
-    executeCommand();
-}
+const TERM_PROMPT = () => `\x1b[1;32mroot\x1b[0m@\x1b[1;34m${window.location.hostname || 'server'}\x1b[0m:\x1b[1;36m${termCwd}\x1b[0m$ `;
 
-function clearTerminal() {
-    const output = document.getElementById('terminalOutput');
-    output.innerHTML = `<div class="terminal-welcome">
-        <div style="color:#58a6ff;font-weight:600;margin-bottom:8px;">终端已清屏</div>
-    </div>`;
-}
-
-function updateTerminalPrompt() {
-    const prompt = document.getElementById('terminalPrompt');
-    const cwdShort = terminalCwd.length > 30 ? '...' + terminalCwd.slice(-27) : terminalCwd;
-    prompt.textContent = `root@server:${cwdShort}$`;
-    document.getElementById('terminalCwd').textContent = terminalCwd;
-}
-
-function appendOutput(text, className = 'output') {
-    const output = document.getElementById('terminalOutput');
-    const line = document.createElement('div');
-    line.className = `terminal-line ${className}`;
-    line.textContent = text;
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
-}
-
-function appendHtml(html) {
-    const output = document.getElementById('terminalOutput');
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    output.appendChild(div);
-    output.scrollTop = output.scrollHeight;
-}
-
-async function executeCommand() {
-    const input = document.getElementById('terminalInput');
-    const cmd = input.value.trim();
+function initTerminal() {
+    const container = document.getElementById('xterm');
+    if (!container || term) return;
     
-    if (!cmd) return;
+    term = new Terminal({
+        fontFamily: '"Cascadia Code", "Fira Code", "Consolas", monospace',
+        fontSize: 14,
+        lineHeight: 1.2,
+        theme: {
+            background: '#0d1117',
+            foreground: '#c9d1d9',
+            cursor: '#58a6ff',
+            cursorAccent: '#0d1117',
+            selectionBackground: 'rgba(88, 166, 255, 0.3)',
+            black: '#0d1117',
+            red: '#f85149',
+            green: '#3fb950',
+            yellow: '#f0883e',
+            blue: '#58a6ff',
+            magenta: '#bc8cff',
+            cyan: '#39c5cf',
+            white: '#c9d1d9',
+            brightBlack: '#484f58',
+            brightRed: '#f85149',
+            brightGreen: '#3fb950',
+            brightYellow: '#f0883e',
+            brightBlue: '#58a6ff',
+            brightMagenta: '#bc8cff',
+            brightCyan: '#39c5cf',
+            brightWhite: '#e6edf3'
+        },
+        cursorBlink: true,
+        cursorStyle: 'block',
+        scrollback: 5000,
+        allowTransparency: true
+    });
+    
+    termFit = new FitAddon.FitAddon();
+    term.loadAddon(termFit);
+    term.loadAddon(new WebLinksAddon());
+    
+    term.open(container);
+    
+    // 欢迎信息
+    term.writeln('\x1b[1;34m╔══════════════════════════════════════════════╗\x1b[0m');
+    term.writeln('\x1b[1;34m║\x1b[0m     \x1b[1;32mWeb Terminal\x1b[0m - Linux Shell Emulator      \x1b[1;34m║\x1b[0m');
+    term.writeln('\x1b[1;34m╚══════════════════════════════════════════════╝\x1b[0m');
+    term.writeln('');
+    term.writeln('  \x1b[90m•\x1b[0m 输入命令后按 \x1b[1;33mEnter\x1b[0m 执行');
+    term.writeln('  \x1b[90m•\x1b[0m 使用 \x1b[1;33m↑/↓\x1b[0m 浏览历史命令');
+    term.writeln('  \x1b[90m•\x1b[0m 使用 \x1b[1;33mCtrl+L\x1b[0m 清屏');
+    term.writeln('  \x1b[90m•\x1b[0m 部分危险命令已被禁止');
+    term.writeln('');
+    
+    writePrompt();
+    
+    // 键盘事件处理
+    term.onKey(({ key, domEvent }) => {
+        const ev = domEvent;
+        
+        if (ev.ctrlKey && ev.key === 'l') {
+            // Ctrl+L 清屏
+            ev.preventDefault();
+            term.clear();
+            writePrompt();
+            return;
+        }
+        
+        if (ev.ctrlKey && ev.key === 'c') {
+            // Ctrl+C 取消当前行
+            term.writeln('^C');
+            termCurrentLine = '';
+            writePrompt();
+            return;
+        }
+        
+        if (ev.ctrlKey && ev.key === 'u') {
+            // Ctrl+U 清除到行首
+            const cleared = termCurrentLine.substring(0, termCursorPos);
+            termCurrentLine = termCurrentLine.substring(termCursorPos);
+            termCursorPos = 0;
+            term.write('\r' + ' '.repeat(cleared.length + TERM_PROMPT().length - 27) + '\r');
+            writePrompt();
+            term.write(termCurrentLine);
+            return;
+        }
+        
+        if (ev.ctrlKey && ev.key === 'a') {
+            // Ctrl+A 移到行首
+            term.write(`\x1b[${termCursorPos + TERM_PROMPT().length - 27}G`);
+            termCursorPos = 0;
+            return;
+        }
+        
+        if (ev.ctrlKey && ev.key === 'e') {
+            // Ctrl+E 移到行尾
+            term.write(`\x1b[${termCurrentLine.length + TERM_PROMPT().length - 27}G`);
+            termCursorPos = termCurrentLine.length;
+            return;
+        }
+        
+        switch (ev.key) {
+            case 'Enter':
+                term.writeln('');
+                executeTermCommand(termCurrentLine);
+                termCurrentLine = '';
+                termCursorPos = 0;
+                break;
+                
+            case 'Backspace':
+                if (termCursorPos > 0) {
+                    termCurrentLine = termCurrentLine.slice(0, termCursorPos - 1) + termCurrentLine.slice(termCursorPos);
+                    termCursorPos--;
+                    redrawLine();
+                }
+                break;
+                
+            case 'Delete':
+                if (termCursorPos < termCurrentLine.length) {
+                    termCurrentLine = termCurrentLine.slice(0, termCursorPos) + termCurrentLine.slice(termCursorPos + 1);
+                    redrawLine();
+                }
+                break;
+                
+            case 'ArrowUp':
+                if (termHistory.length > 0 && termHistoryIndex < termHistory.length - 1) {
+                    termHistoryIndex++;
+                    termCurrentLine = termHistory[termHistory.length - 1 - termHistoryIndex];
+                    termCursorPos = termCurrentLine.length;
+                    redrawLine(true);
+                }
+                break;
+                
+            case 'ArrowDown':
+                if (termHistoryIndex > 0) {
+                    termHistoryIndex--;
+                    termCurrentLine = termHistory[termHistory.length - 1 - termHistoryIndex];
+                    termCursorPos = termCurrentLine.length;
+                    redrawLine(true);
+                } else if (termHistoryIndex === 0) {
+                    termHistoryIndex = -1;
+                    termCurrentLine = '';
+                    termCursorPos = 0;
+                    redrawLine(true);
+                }
+                break;
+                
+            case 'ArrowLeft':
+                if (termCursorPos > 0) {
+                    termCursorPos--;
+                    term.write('\x1b[D');
+                }
+                break;
+                
+            case 'ArrowRight':
+                if (termCursorPos < termCurrentLine.length) {
+                    termCursorPos++;
+                    term.write('\x1b[C');
+                }
+                break;
+                
+            case 'Home':
+                term.write(`\x1b[${TERM_PROMPT().length - 27}G`);
+                termCursorPos = 0;
+                break;
+                
+            case 'End':
+                term.write(`\x1b[${termCurrentLine.length + TERM_PROMPT().length - 27}G`);
+                termCursorPos = termCurrentLine.length;
+                break;
+                
+            case 'Tab':
+                // Tab补全（简单提示）
+                if (termCurrentLine) {
+                    term.write('\x1b[90m\x1b[3m[Tab]\x1b[0m');
+                    setTimeout(() => term.write('\b\b\b\b\b\b\x1b[0m      \b\b\b\b\b\b'), 500);
+                }
+                break;
+                
+            default:
+                if (key.length === 1 && !ev.ctrlKey) {
+                    termCurrentLine = termCurrentLine.slice(0, termCursorPos) + key + termCurrentLine.slice(termCursorPos);
+                    termCursorPos++;
+                    redrawLine();
+                }
+        }
+    });
+    
+    // 窗口大小调整
+    const resizeObserver = new ResizeObserver(() => {
+        if (termFit) {
+            termFit.fit();
+        }
+    });
+    resizeObserver.observe(document.getElementById('terminalBody'));
+    
+    // 初始适应
+    setTimeout(() => termFit.fit(), 100);
+}
+
+function writePrompt() {
+    term.write(TERM_PROMPT());
+}
+
+function redrawLine(full = false) {
+    if (full) {
+        term.write('\r\x1b[K');
+        writePrompt();
+        term.write(termCurrentLine);
+    } else {
+        term.write('\r\x1b[K');
+        writePrompt();
+        term.write(termCurrentLine);
+        // 移动光标到正确位置
+        const moveLeft = termCurrentLine.length - termCursorPos;
+        if (moveLeft > 0) {
+            term.write(`\x1b[${moveLeft}D`);
+        }
+    }
+}
+
+async function executeTermCommand(cmd) {
+    cmd = cmd.trim();
+    
+    if (!cmd) {
+        writePrompt();
+        return;
+    }
     
     // 添加到历史
-    terminalHistory.push(cmd);
-    if (terminalHistory.length > MAX_HISTORY) {
-        terminalHistory.shift();
+    if (cmd !== termHistory[termHistory.length - 1]) {
+        termHistory.push(cmd);
+        if (termHistory.length > 200) termHistory.shift();
     }
-    historyIndex = terminalHistory.length;
+    termHistoryIndex = -1;
     
-    // 显示命令
-    appendOutput(`$ ${cmd}`, 'cmd');
-    input.value = '';
-    
-    // 内置命令处理
+    // 内置命令
     if (cmd === 'clear') {
-        clearTerminal();
+        term.clear();
+        writePrompt();
         return;
     }
     
     if (cmd === 'exit') {
-        appendOutput('提示：使用浏览器标签页关闭此页面', 'prompt');
+        term.writeln('\x1b[33m提示: 使用浏览器标签页关闭此页面\x1b[0m');
+        writePrompt();
         return;
     }
     
-    // 发送到服务器执行
+    if (cmd === 'help') {
+        term.writeln('');
+        term.writeln('\x1b[1;36m可用命令:\x1b[0m');
+        term.writeln('  \x1b[32mclear\x1b[0m    - 清屏');
+        term.writeln('  \x1b[32mexit\x1b[0m     - 退出提示');
+        term.writeln('  \x1b[32mhelp\x1b[0m     - 显示帮助');
+        term.writeln('');
+        term.writeln('\x1b[90m提示: 支持大部分Linux命令，部分危险命令已禁止\x1b[0m');
+        term.writeln('');
+        writePrompt();
+        return;
+    }
+    
+    // 发送到服务器
     try {
+        updateTerminalStatus(true);
         const resp = await fetch('/api/terminal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: cmd, cwd: terminalCwd })
+            body: JSON.stringify({ command: cmd, cwd: termCwd })
         });
         
         const data = await resp.json();
         
         if (resp.ok && data.success) {
             if (data.output) {
-                // 处理输出，支持ANSI颜色码
-                let output = data.output
-                    .replace(/\x1b\[0m/g, '</span>')
-                    .replace(/\x1b\[31m/g, '<span style="color:#f85149">')
-                    .replace(/\x1b\[32m/g, '<span style="color:#3fb950">')
-                    .replace(/\x1b\[33m/g, '<span style="color:#f0883e">')
-                    .replace(/\x1b\[34m/g, '<span style="color:#58a6ff">')
-                    .replace(/\x1b\[35m/g, '<span style="color:#bc8cff">')
-                    .replace(/\x1b\[36m/g, '<span style="color:#39c5cf">')
-                    .replace(/\x1b\[1m/g, '<span style="font-weight:bold">');
-                
-                // 按行输出
-                const lines = output.split('\n');
-                lines.forEach(line => {
-                    if (line || lines.length === 1) {
-                        appendHtml(`<div class="terminal-line output">${escHtml(line).replace(/&lt;span/g, '<span').replace(/&gt;/g, '>')}</div>`);
-                    }
-                });
+                term.writeln('');
+                // 处理输出
+                const lines = data.output.split('\n');
+                for (const line of lines) {
+                    term.writeln(line);
+                }
             }
-            
-            // 更新工作目录
-            if (data.cwd && data.cwd !== terminalCwd) {
-                terminalCwd = data.cwd;
-                updateTerminalPrompt();
+            if (data.cwd) {
+                termCwd = data.cwd;
             }
         } else {
-            appendOutput(data.error || '命令执行失败', 'error');
+            term.writeln(`\x1b[31m${data.error || '命令执行失败'}\x1b[0m`);
         }
     } catch (e) {
-        appendOutput(`网络错误: ${e.message}`, 'error');
+        term.writeln(`\x1b[31m网络错误: ${e.message}\x1b[0m`);
+    }
+    
+    updateTerminalStatus(false);
+    writePrompt();
+}
+
+function updateTerminalStatus(loading) {
+    const status = document.getElementById('terminalStatus');
+    if (loading) {
+        status.innerHTML = '<span style="width:6px;height:6px;background:#f0883e;border-radius:50%;animation:blink 1s infinite;"></span> 执行中...';
+        status.classList.add('disconnected');
+    } else {
+        status.innerHTML = '<span style="width:6px;height:6px;background:currentColor;border-radius:50%;"></span> 已连接';
+        status.classList.remove('disconnected');
     }
 }
 
-// 终端输入事件
-document.addEventListener('DOMContentLoaded', () => {
-    const terminalInput = document.getElementById('terminalInput');
-    if (terminalInput) {
-        terminalInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                executeCommand();
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (historyIndex > 0) {
-                    historyIndex--;
-                    terminalInput.value = terminalHistory[historyIndex];
-                }
-            } else if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if (historyIndex < terminalHistory.length - 1) {
-                    historyIndex++;
-                    terminalInput.value = terminalHistory[historyIndex];
-                } else {
-                    historyIndex = terminalHistory.length;
-                    terminalInput.value = '';
-                }
-            } else if (e.key === 'Tab') {
-                e.preventDefault();
-                // 简单的Tab补全提示
-                const val = terminalInput.value;
-                if (val.startsWith('cd ') || val.startsWith('ls ') || val.includes(' ')) {
-                    const parts = val.split(' ');
-                    const lastPart = parts[parts.length - 1];
-                    if (lastPart) {
-                        appendOutput(`[Tab补全] 提示: ${lastPart}*`, 'prompt');
-                    }
-                }
-            }
-        });
+function termExec(cmd) {
+    if (!term) initTerminal();
+    term.writeln(`\x1b[90m$ ${cmd}\x1b[0m`);
+    executeTermCommand(cmd);
+}
+
+function terminalClear() {
+    if (term) {
+        term.clear();
+        writePrompt();
     }
-    
-    // 初始化提示符
-    updateTerminalPrompt();
-});
+}
+
+function terminalReset() {
+    if (term) {
+        term.dispose();
+        term = null;
+        termHistory = [];
+        termHistoryIndex = -1;
+        termCwd = '/';
+        termCurrentLine = '';
+        termCursorPos = 0;
+        initTerminal();
+    }
+}
 
 // ── Init ──────────────────────────────────────────────
 
