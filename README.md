@@ -1,6 +1,6 @@
 # File Viewer
 
-基于 Web 的 Linux 服务器文件管理工具，支持文件浏览、编辑、上传、下载、删除（白名单管控）等功能。
+基于 Web 的 Linux 服务器文件管理工具，支持文件浏览、编辑、上传、下载、删除（白名单管控）、Web终端等功能。
 
 ## 功能特性
 
@@ -15,6 +15,7 @@
 - **文件删除** - 支持白名单管控，防止误删系统重要文件
 - **权限管理** - 查看和修改文件权限
 - **系统监控** - 实时查看 CPU、内存、磁盘、网络状态
+- **Web 终端** - 基于 xterm.js 的终端模拟器，支持命令执行和Tab补全
 - **URL 历史** - 支持浏览器前进/后退导航
 - **YAML 配置** - 统一配置管理，无需修改代码
 
@@ -58,12 +59,21 @@ file-viewer/
 
 # 系统文件（安装后生成）
 /etc/file-viewer/
-├── config.yaml              # 系统配置文件（可选）
+├── config.yaml              # 系统配置文件
 /etc/file-viewer.passwd      # 密码文件
 /etc/file-viewer-whitelist.json  # 删除白名单
 ```
 
 ## 配置说明
+
+### 配置存储位置
+
+| 配置项 | 存储位置 | 说明 |
+|--------|----------|------|
+| 删除白名单 | `/etc/file-viewer-whitelist.json` | JSON格式，持久化 |
+| 快捷路径 | `/etc/file-viewer/config.yaml` | YAML格式，持久化 |
+| 快捷命令 | `/etc/file-viewer/config.yaml` | YAML格式，持久化 |
+| 登录密码 | `/etc/file-viewer.passwd` | SHA256哈希 |
 
 ### YAML 配置文件
 
@@ -88,6 +98,18 @@ delete_whitelist:
   - "/tmp"
   - "/var/tmp"
   - "/var/www/uploads"  # 可添加更多路径
+
+# 快捷路径 - 文件浏览页面的快捷访问路径
+quick_paths:
+  - { path: "/", name: "/ 根目录" }
+  - { path: "/etc", name: "/etc" }
+  - { path: "/var/log", name: "/var/log" }
+
+# 快捷命令 - 终端页面的快捷命令按钮
+quick_commands:
+  - { cmd: "ls -la --color=auto", name: "ls -la" }
+  - { cmd: "df -h", name: "df -h" }
+  - { cmd: "docker ps -a", name: "docker" }
 
 # 文件夹权限配置
 folder_permissions:
@@ -115,25 +137,33 @@ download_limits:
   max_file_preview_size: 2097152     # 文件预览最大 2MB
 ```
 
-### 删除白名单管理
+### 设置面板管理
 
-删除功能采用白名单机制，只有在白名单中的路径才能被删除：
+登录后点击右上角"设置"按钮，可管理以下配置：
 
-1. **Web 界面管理**：登录后点击右上角"设置"按钮，在"删除白名单"标签页管理
-2. **手动编辑**：修改配置文件中的 `delete_whitelist` 列表
-3. **白名单规则**：
-   - 白名单中的路径及其子目录都可以被删除
-   - 非白名单路径不显示删除按钮
+| 标签页 | 功能 |
+|--------|------|
+| 删除白名单 | 添加/删除允许删除的路径 |
+| 快捷路径 | 自定义文件浏览页面的快捷按钮 |
+| 快捷命令 | 自定义终端页面的快捷命令按钮 |
 
-### 快捷路径管理
+所有配置保存到服务器配置文件，重启后保留。
 
-快捷路径用于快速访问常用目录，支持自定义配置：
+## Web 终端
 
-1. **Web 界面管理**：登录后点击右上角"设置"按钮，在"快捷路径"标签页管理
-2. **添加路径**：输入路径和显示名称，点击添加
-3. **删除路径**：点击对应路径的删除按钮
-4. **恢复默认**：点击"恢复默认快捷路径"按钮重置
-5. **数据存储**：快捷路径配置保存在浏览器 localStorage 中
+基于 xterm.js 的终端模拟器，提供接近原生终端的体验：
+
+**功能特性：**
+- 命令执行（支持大部分Linux命令）
+- Tab 补全（命令和路径）
+- 历史命令（↑/↓ 键导航）
+- 快捷键支持（Ctrl+L清屏、Ctrl+C取消等）
+- 自定义快捷命令按钮
+
+**安全限制：**
+- 禁止危险命令：`rm -rf /`、`mkfs`、`shutdown`、`reboot` 等
+- 命令执行超时：30秒
+- 部分命令需要白名单权限
 
 ## 管理命令
 
@@ -201,6 +231,10 @@ server {
 | `/api/file/download` | GET | 单文件下载 |
 | `/api/file/download/batch` | POST | 批量下载 |
 | `/api/whitelist` | POST | 白名单管理 |
+| `/api/quickpaths` | POST | 快捷路径管理 |
+| `/api/quickcmds` | POST | 快捷命令管理 |
+| `/api/terminal` | POST | 终端命令执行 |
+| `/api/terminal/complete` | POST | Tab补全 |
 | `/api/system` | GET | 获取系统监控信息 |
 
 ## 常见问题
@@ -220,6 +254,10 @@ A: 该路径不在删除白名单中，请在"删除白名单"页面添加允许
 **Q: 修改配置后不生效？**
 
 A: 重启服务：`file-viewer restart`
+
+**Q: 终端 cd 命令不生效？**
+
+A: 已修复，cd命令会正确切换工作目录。如果仍有问题，请重启服务。
 
 **Q: 如何查看日志？**
 

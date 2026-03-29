@@ -18,6 +18,33 @@ delete_whitelist:
   - "/tmp"
   - "/var/tmp"
 
+# 快捷路径 - 文件浏览页面的快捷访问路径
+# 格式: [{path: "路径", name: "显示名称"}]
+quick_paths:
+  - { path: "/", name: "/ 根目录" }
+  - { path: "/etc", name: "/etc" }
+  - { path: "/var/log", name: "/var/log" }
+  - { path: "/var/www/html", name: "/var/www/html" }
+  - { path: "/etc/nginx/nginx.conf", name: "/etc/nginx/nginx.conf" }
+  - { path: "/proc/cpuinfo", name: "/proc/cpuinfo" }
+  - { path: "/proc/meminfo", name: "/proc/meminfo" }
+  - { path: "/etc/passwd", name: "/etc/passwd" }
+  - { path: "/etc/hosts", name: "/etc/hosts" }
+
+# 快捷命令 - 终端页面的快捷命令按钮
+# 格式: [{cmd: "命令", name: "显示名称"}]
+quick_commands:
+  - { cmd: "ls -la --color=auto", name: "ls -la" }
+  - { cmd: "pwd", name: "pwd" }
+  - { cmd: "df -h", name: "df -h" }
+  - { cmd: "free -h", name: "free -h" }
+  - { cmd: "top -bn1 | head -15", name: "top" }
+  - { cmd: "ps aux --sort=-%mem | head -10", name: "内存" }
+  - { cmd: "ss -tlnp", name: "端口" }
+  - { cmd: "journalctl -u nginx -n 20 --no-pager", name: "nginx日志" }
+  - { cmd: "docker ps -a", name: "docker" }
+  - { cmd: "htop 2>/dev/null || top -bn1 | head -20", name: "系统" }
+
 # 文件夹权限配置
 # 可针对不同目录配置读写权限
 folder_permissions:

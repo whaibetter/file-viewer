@@ -1107,21 +1107,45 @@ const DEFAULT_QUICK_CMDS = [
     { cmd: 'htop 2>/dev/null || top -bn1 | head -20', name: '系统' }
 ];
 
-// 获取快捷路径（从 localStorage 或使用默认值）
-function getQuickPaths() {
-    const saved = localStorage.getItem('quickPaths');
-    return saved ? JSON.parse(saved) : DEFAULT_QUICK_PATHS;
+// 快捷路径缓存
+let quickPathsCache = null;
+let quickCmdsCache = null;
+
+// 获取快捷路径（从API或缓存）
+async function getQuickPaths() {
+    if (quickPathsCache !== null) return quickPathsCache;
+    try {
+        const resp = await fetch('/api/quickpaths', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const data = await resp.json();
+        quickPathsCache = data.quick_paths || DEFAULT_QUICK_PATHS;
+        return quickPathsCache;
+    } catch {
+        return DEFAULT_QUICK_PATHS;
+    }
 }
 
-// 保存快捷路径到 localStorage
-function saveQuickPaths(paths) {
-    localStorage.setItem('quickPaths', JSON.stringify(paths));
+// 保存快捷路径到服务器
+async function saveQuickPaths(paths) {
+    try {
+        const resp = await fetch('/api/quickpaths', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'set', quick_paths: paths })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            quickPathsCache = paths;
+            return true;
+        }
+    } catch {}
+    return false;
 }
 
 // 渲染快捷路径按钮
-function renderQuickPaths() {
-    const paths = getQuickPaths();
+async function renderQuickPaths() {
+    const paths = await getQuickPaths();
     const container = document.getElementById('quickPathsContainer');
+    if (!container) return;
     container.innerHTML = paths.map(p => 
         `<button class="quick-btn" onclick="setPath('${p.path.replace(/'/g, "\\'")}')">${escHtml(p.name)}</button>`
     ).join('');
@@ -1148,8 +1172,8 @@ function switchSettingsTab(tab) {
 }
 
 // 渲染快捷路径设置列表
-function renderQuickPathsSettings() {
-    const paths = getQuickPaths();
+async function renderQuickPathsSettings() {
+    const paths = await getQuickPaths();
     const container = document.getElementById('quickPathsSettingsContainer');
     
     if (paths.length === 0) {
@@ -1169,7 +1193,7 @@ function renderQuickPathsSettings() {
 }
 
 // 添加快捷路径
-function addQuickPathFromPanel() {
+async function addQuickPathFromPanel() {
     const pathInput = document.getElementById('newQuickPathInput');
     const nameInput = document.getElementById('newQuickNameInput');
     const path = pathInput.value.trim();
@@ -1180,7 +1204,7 @@ function addQuickPathFromPanel() {
         return;
     }
     
-    const paths = getQuickPaths();
+    const paths = await getQuickPaths();
     
     // 检查是否已存在
     if (paths.some(p => p.path === path)) {
@@ -1189,7 +1213,7 @@ function addQuickPathFromPanel() {
     }
     
     paths.push({ path, name });
-    saveQuickPaths(paths);
+    await saveQuickPaths(paths);
     
     pathInput.value = '';
     nameInput.value = '';
@@ -1200,19 +1224,19 @@ function addQuickPathFromPanel() {
 }
 
 // 删除快捷路径
-function removeQuickPath(index) {
-    const paths = getQuickPaths();
+async function removeQuickPath(index) {
+    const paths = await getQuickPaths();
     paths.splice(index, 1);
-    saveQuickPaths(paths);
+    await saveQuickPaths(paths);
     renderQuickPathsSettings();
     renderQuickPaths();
     showToast('快捷路径已删除', 'success');
 }
 
 // 恢复默认快捷路径
-function resetQuickPathsToDefault() {
+async function resetQuickPathsToDefault() {
     if (confirm('确定要恢复默认快捷路径吗？这将覆盖当前配置。')) {
-        saveQuickPaths(DEFAULT_QUICK_PATHS);
+        await saveQuickPaths(DEFAULT_QUICK_PATHS);
         renderQuickPathsSettings();
         renderQuickPaths();
         showToast('已恢复默认快捷路径', 'success');
@@ -1221,20 +1245,39 @@ function resetQuickPathsToDefault() {
 
 // ── 快捷命令管理 ────────────────────────────────────
 
-// 获取快捷命令（从 localStorage 或使用默认值）
-function getQuickCmds() {
-    const saved = localStorage.getItem('quickCmds');
-    return saved ? JSON.parse(saved) : DEFAULT_QUICK_CMDS;
+// 获取快捷命令（从API或缓存）
+async function getQuickCmds() {
+    if (quickCmdsCache !== null) return quickCmdsCache;
+    try {
+        const resp = await fetch('/api/quickcmds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const data = await resp.json();
+        quickCmdsCache = data.quick_cmds || DEFAULT_QUICK_CMDS;
+        return quickCmdsCache;
+    } catch {
+        return DEFAULT_QUICK_CMDS;
+    }
 }
 
-// 保存快捷命令到 localStorage
-function saveQuickCmds(cmds) {
-    localStorage.setItem('quickCmds', JSON.stringify(cmds));
+// 保存快捷命令到服务器
+async function saveQuickCmds(cmds) {
+    try {
+        const resp = await fetch('/api/quickcmds', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'set', quick_cmds: cmds })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            quickCmdsCache = cmds;
+            return true;
+        }
+    } catch {}
+    return false;
 }
 
 // 渲染终端快捷命令按钮
-function renderQuickCmds() {
-    const cmds = getQuickCmds();
+async function renderQuickCmds() {
+    const cmds = await getQuickCmds();
     const container = document.getElementById('terminalQuickCmds');
     if (!container) return;
     
@@ -1246,8 +1289,8 @@ function renderQuickCmds() {
 }
 
 // 渲染快捷命令设置列表
-function renderQuickCmdsSettings() {
-    const cmds = getQuickCmds();
+async function renderQuickCmdsSettings() {
+    const cmds = await getQuickCmds();
     const container = document.getElementById('quickCmdsSettingsContainer');
     
     if (cmds.length === 0) {
@@ -1267,7 +1310,7 @@ function renderQuickCmdsSettings() {
 }
 
 // 添加快捷命令
-function addQuickCmdFromPanel() {
+async function addQuickCmdFromPanel() {
     const cmdInput = document.getElementById('newQuickCmdInput');
     const nameInput = document.getElementById('newQuickCmdNameInput');
     const cmd = cmdInput.value.trim();
@@ -1278,7 +1321,7 @@ function addQuickCmdFromPanel() {
         return;
     }
     
-    const cmds = getQuickCmds();
+    const cmds = await getQuickCmds();
     
     // 检查是否已存在
     if (cmds.some(c => c.cmd === cmd)) {
@@ -1287,7 +1330,7 @@ function addQuickCmdFromPanel() {
     }
     
     cmds.push({ cmd, name });
-    saveQuickCmds(cmds);
+    await saveQuickCmds(cmds);
     
     cmdInput.value = '';
     nameInput.value = '';
@@ -1298,19 +1341,19 @@ function addQuickCmdFromPanel() {
 }
 
 // 删除快捷命令
-function removeQuickCmd(index) {
-    const cmds = getQuickCmds();
+async function removeQuickCmd(index) {
+    const cmds = await getQuickCmds();
     cmds.splice(index, 1);
-    saveQuickCmds(cmds);
+    await saveQuickCmds(cmds);
     renderQuickCmdsSettings();
     renderQuickCmds();
     showNotification('快捷命令已删除', 'success');
 }
 
 // 恢复默认快捷命令
-function resetQuickCmdsToDefault() {
+async function resetQuickCmdsToDefault() {
     if (confirm('确定要恢复默认快捷命令吗？这将覆盖当前配置。')) {
-        saveQuickCmds(DEFAULT_QUICK_CMDS);
+        await saveQuickCmds(DEFAULT_QUICK_CMDS);
         renderQuickCmdsSettings();
         renderQuickCmds();
         showNotification('已恢复默认快捷命令', 'success');

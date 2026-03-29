@@ -97,6 +97,45 @@ def save_whitelist(whitelist: list) -> bool:
         return False
 
 
+def save_config(config: dict) -> bool:
+    """保存完整配置到文件"""
+    try:
+        config_path = CONFIG_FILE if CONFIG_FILE.exists() else PROJECT_CONFIG_FILE
+        with config_path.open("w", encoding="utf-8") as f:
+            yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        # 重新加载全局配置
+        global _config
+        _config = config
+        return True
+    except Exception as e:
+        print(f"Failed to save config: {e}")
+        return False
+
+
+def get_quick_paths() -> list:
+    """获取快捷路径配置"""
+    return _config.get("quick_paths", [])
+
+
+def save_quick_paths(paths: list) -> bool:
+    """保存快捷路径配置"""
+    global _config
+    _config["quick_paths"] = paths
+    return save_config(_config)
+
+
+def get_quick_cmds() -> list:
+    """获取快捷命令配置"""
+    return _config.get("quick_commands", [])
+
+
+def save_quick_cmds(cmds: list) -> bool:
+    """保存快捷命令配置"""
+    global _config
+    _config["quick_commands"] = cmds
+    return save_config(_config)
+
+
 def is_in_whitelist(path: str) -> bool:
     """检查路径是否在白名单中"""
     whitelist = load_whitelist()
@@ -458,6 +497,12 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
         elif parsed.path == "/api/whitelist":
             if self.require_auth():
                 self._handle_whitelist()
+        elif parsed.path == "/api/quickpaths":
+            if self.require_auth():
+                self._handle_quickpaths()
+        elif parsed.path == "/api/quickcmds":
+            if self.require_auth():
+                self._handle_quickcmds()
         elif parsed.path == "/api/terminal":
             if self.require_auth():
                 self._handle_terminal()
@@ -838,6 +883,64 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
                 whitelist = load_whitelist()
                 self.send_json(200, {"whitelist": whitelist})
         
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _handle_quickpaths(self):
+        """处理快捷路径配置请求"""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            if length == 0:
+                # 获取快捷路径
+                paths = get_quick_paths()
+                self.send_json(200, {"quick_paths": paths})
+                return
+            
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            action = data.get("action", "")
+            
+            if action == "set":
+                paths = data.get("quick_paths", [])
+                if not isinstance(paths, list):
+                    self.send_json(400, {"error": "Invalid format"})
+                    return
+                if save_quick_paths(paths):
+                    self.send_json(200, {"success": True, "quick_paths": paths})
+                else:
+                    self.send_json(500, {"error": "保存失败"})
+            else:
+                paths = get_quick_paths()
+                self.send_json(200, {"quick_paths": paths})
+                
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _handle_quickcmds(self):
+        """处理快捷命令配置请求"""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            if length == 0:
+                # 获取快捷命令
+                cmds = get_quick_cmds()
+                self.send_json(200, {"quick_cmds": cmds})
+                return
+            
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            action = data.get("action", "")
+            
+            if action == "set":
+                cmds = data.get("quick_cmds", [])
+                if not isinstance(cmds, list):
+                    self.send_json(400, {"error": "Invalid format"})
+                    return
+                if save_quick_cmds(cmds):
+                    self.send_json(200, {"success": True, "quick_cmds": cmds})
+                else:
+                    self.send_json(500, {"error": "保存失败"})
+            else:
+                cmds = get_quick_cmds()
+                self.send_json(200, {"quick_cmds": cmds})
+                
         except Exception as e:
             self.send_json(500, {"error": str(e)})
 
