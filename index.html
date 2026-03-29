@@ -2353,11 +2353,8 @@ function initTerminal() {
                 break;
                 
             case 'Tab':
-                // Tab补全（简单提示）
-                if (termCurrentLine) {
-                    term.write('\x1b[90m\x1b[3m[Tab]\x1b[0m');
-                    setTimeout(() => term.write('\b\b\b\b\b\b\x1b[0m      \b\b\b\b\b\b'), 500);
-                }
+                // Tab键暂不处理（需要后端补全支持）
+                ev.preventDefault();
                 break;
                 
             default:
