@@ -1162,11 +1162,6 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
             return sorted(completions)[:20]
         except:
             return []
-            except Exception as e:
-                self.send_json(500, {"error": f"命令执行失败: {str(e)}"})
-                
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
 
 
 if __name__ == "__main__":
