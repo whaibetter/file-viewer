@@ -459,6 +459,9 @@
         /* 移动端卡片式文件列表样式 */
         .file-card-list { display: none; }
         
+        /* 移动端进程卡片列表样式 */
+        .proc-card-list { display: none; }
+        
         @media (max-width: 768px) {
             /* Header */
             header { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
@@ -663,11 +666,61 @@
             .mon-big-num { font-size: 1.6em; }
             .net-pair { gap: 20px; }
             
-            /* 进程表格移动端优化 */
-            .proc-table { font-size: 0.72em; }
-            .proc-table th, .proc-table td { padding: 3px 4px; }
-            .proc-table th:nth-child(2), .proc-table td:nth-child(2) { max-width: 60px; overflow: hidden; text-overflow: ellipsis; }
-            .proc-table td:last-child { max-width: 120px; }
+            /* 进程表格移动端使用卡片布局 */
+            .proc-table { display: none !important; }
+            .proc-card-list { display: block; }
+            
+            .proc-card {
+                background: #0d1117;
+                border: 1px solid #21262d;
+                border-radius: 6px;
+                padding: 10px 12px;
+                margin-bottom: 8px;
+            }
+            .proc-card:last-child { margin-bottom: 0; }
+            
+            .proc-card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 6px;
+            }
+            .proc-card-pid {
+                font-family: monospace;
+                color: #58a6ff;
+                font-size: 0.9em;
+                font-weight: 600;
+            }
+            .proc-card-user {
+                color: #8b949e;
+                font-size: 0.78em;
+            }
+            
+            .proc-card-cmd {
+                color: #c9d1d9;
+                font-size: 0.82em;
+                word-break: break-all;
+                margin-bottom: 6px;
+                line-height: 1.4;
+            }
+            
+            .proc-card-stats {
+                display: flex;
+                gap: 16px;
+                font-size: 0.78em;
+            }
+            .proc-card-stat {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .proc-card-stat-label { color: #484f58; }
+            .proc-card-stat-value { 
+                font-family: monospace; 
+                font-weight: 600;
+            }
+            .proc-card-stat-value.cpu { color: #f85149; }
+            .proc-card-stat-value.mem { color: #58a6ff; }
 
             /* Checkbox */
             .checkbox-cell { width: 32px; }
@@ -1888,7 +1941,40 @@ function renderMonitor(d) {
     html += `<div class="mon-card"><div class="mon-card-title">💾 磁盘</div>`;
     disks.forEach(dk => { const dkPct = dk.usage_percent || 0; html += `<div class="disk-item"><div class="disk-mount">${escHtml(dk.mount)}</div><div class="pbar-wrap" style="margin:4px 0"><div class="pbar ${pbarClass(dkPct)}" style="width:${dkPct}%"></div></div><div class="disk-detail"><span>${formatSize(dk.used)}</span><span>${formatSize(dk.available)}</span></div></div>`; });
     html += '</div>';
-    if (procs.length > 0) { html += `<div class="mon-card wide"><div class="mon-card-title">📊 进程</div><table class="proc-table"><thead><tr><th>PID</th><th>用户</th><th>CPU%</th><th>MEM%</th><th>命令</th></tr></thead><tbody>`; procs.forEach(p => { html += `<tr><td>${p.pid}</td><td>${escHtml(p.user)}</td><td>${p.cpu.toFixed(1)}</td><td>${p.mem.toFixed(1)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.command)}</td></tr>`; }); html += '</tbody></table></div>'; }
+    
+    // 进程列表 - 桌面端表格 + 移动端卡片
+    if (procs.length > 0) {
+        // 桌面端表格
+        const tableRows = procs.map(p => 
+            `<tr><td>${p.pid}</td><td>${escHtml(p.user)}</td><td>${p.cpu.toFixed(1)}</td><td>${p.mem.toFixed(1)}</td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(p.command)}</td></tr>`
+        ).join('');
+        const tableHtml = `<table class="proc-table"><thead><tr><th>PID</th><th>用户</th><th>CPU%</th><th>MEM%</th><th>命令</th></tr></thead><tbody>${tableRows}</tbody></table>`;
+        
+        // 移动端卡片
+        const cards = procs.map(p => `
+            <div class="proc-card">
+                <div class="proc-card-header">
+                    <span class="proc-card-pid">PID: ${p.pid}</span>
+                    <span class="proc-card-user">${escHtml(p.user)}</span>
+                </div>
+                <div class="proc-card-cmd">${escHtml(p.command)}</div>
+                <div class="proc-card-stats">
+                    <div class="proc-card-stat">
+                        <span class="proc-card-stat-label">CPU:</span>
+                        <span class="proc-card-stat-value cpu">${p.cpu.toFixed(1)}%</span>
+                    </div>
+                    <div class="proc-card-stat">
+                        <span class="proc-card-stat-label">MEM:</span>
+                        <span class="proc-card-stat-value mem">${p.mem.toFixed(1)}%</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        const cardHtml = `<div class="proc-card-list">${cards}</div>`;
+        
+        html += `<div class="mon-card wide"><div class="mon-card-title">📊 进程</div>${tableHtml}${cardHtml}</div>`;
+    }
+    
     html += '</div>';
     document.getElementById('monitorContent').innerHTML = html;
 }
