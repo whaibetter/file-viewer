@@ -456,6 +456,9 @@
         .quick-path-form .btn { flex-shrink: 0; }
 
         /* ── Responsive Design ─────────────────────────────── */
+        /* 移动端卡片式文件列表样式 */
+        .file-card-list { display: none; }
+        
         @media (max-width: 768px) {
             /* Header */
             header { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
@@ -481,23 +484,150 @@
             .file-header { flex-direction: column; align-items: flex-start; padding: 10px 12px; gap: 8px; }
             .file-meta { flex-wrap: wrap; gap: 8px; }
 
-            /* Directory Table */
-            .dir-table { display: block; width: 100%; table-layout: fixed; }
-            .dir-table th, .dir-table td { padding: 8px 6px; font-size: 0.8em; white-space: normal; word-break: break-all; }
-            .dir-table th:nth-child(4), .dir-table td:nth-child(4), /* 类型列 */
-            .dir-table th:nth-child(6), .dir-table td:nth-child(6) { display: none; } /* 隐藏所有者列 */
-            .dir-table th:nth-child(5), .dir-table td:nth-child(5) { max-width: 80px; } /* 权限列 */
+            /* 移动端使用卡片布局替代表格 */
+            .dir-table { display: none !important; }
+            .file-card-list { display: block; }
+            
+            .file-card {
+                display: flex;
+                align-items: flex-start;
+                padding: 12px;
+                background: #161b22;
+                border-bottom: 1px solid #21262d;
+                gap: 10px;
+            }
+            .file-card:last-child { border-bottom: none; }
+            .file-card:hover { background: #1c2128; }
+            
+            .file-card-checkbox {
+                flex-shrink: 0;
+                padding-top: 4px;
+            }
+            .file-card-checkbox input[type="checkbox"] {
+                appearance: none;
+                -webkit-appearance: none;
+                width: 20px;
+                height: 20px;
+                border: 2px solid #484f58;
+                border-radius: 6px;
+                background: #21262d;
+                cursor: pointer;
+                position: relative;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .file-card-checkbox input[type="checkbox"]:hover {
+                border-color: #58a6ff;
+                box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+            }
+            .file-card-checkbox input[type="checkbox"]:checked {
+                background: linear-gradient(135deg, #1f6feb 0%, #58a6ff 100%);
+                border-color: #58a6ff;
+            }
+            .file-card-checkbox input[type="checkbox"]:checked::after {
+                content: '';
+                position: absolute;
+                left: 5px;
+                top: 2px;
+                width: 5px;
+                height: 10px;
+                border: solid white;
+                border-width: 0 2px 2px 0;
+                transform: rotate(45deg);
+            }
+            
+            .file-card-icon {
+                font-size: 1.5em;
+                flex-shrink: 0;
+            }
+            
+            .file-card-content {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .file-card-name {
+                color: #58a6ff;
+                font-size: 0.95em;
+                cursor: pointer;
+                word-break: break-all;
+                margin-bottom: 4px;
+            }
+            .file-card-name:hover { text-decoration: underline; }
+            .file-card-name.is-file { color: #c9d1d9; }
+            .file-card-name.is-file:hover { color: #58a6ff; }
+            
+            .file-card-meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px 16px;
+                font-size: 0.78em;
+                color: #8b949e;
+                margin-bottom: 6px;
+            }
+            .file-card-meta-item {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .file-card-meta-label { color: #484f58; }
+            .file-card-meta-value { color: #8b949e; font-family: monospace; }
+            
+            .file-card-actions {
+                display: flex;
+                gap: 6px;
+                flex-shrink: 0;
+                flex-wrap: wrap;
+            }
+            .file-card-btn {
+                background: #21262d;
+                border: 1px solid #30363d;
+                color: #c9d1d9;
+                padding: 4px 10px;
+                border-radius: 4px;
+                font-size: 0.78em;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .file-card-btn:hover { background: #30363d; border-color: #8b949e; }
+            .file-card-btn.btn-download { color: #3fb950; border-color: #238636; background: rgba(35, 134, 54, 0.15); }
+            .file-card-btn.btn-download:hover { background: rgba(35, 134, 54, 0.25); }
+            .file-card-btn.btn-delete { color: #f85149; border-color: rgba(248, 81, 73, 0.4); background: rgba(248, 81, 73, 0.1); }
+            .file-card-btn.btn-delete:hover { background: rgba(248, 81, 73, 0.2); }
 
             /* Toolbar */
-            .dir-toolbar { padding: 8px 12px; gap: 6px; }
+            .dir-toolbar { padding: 8px 12px; gap: 6px; flex-wrap: wrap; }
             .toolbar-btn { padding: 5px 10px; font-size: 0.8em; }
             .action-divider { display: none; }
-            .selection-info { margin-left: 0; margin-top: 6px; width: 100%; text-align: center; }
+            .action-row { flex-wrap: wrap; }
+            .selection-info { margin-left: 0; width: 100%; text-align: center; order: 10; margin-top: 6px; }
 
             /* Code/Content */
             pre { padding: 12px; font-size: 0.82em; }
             .line-num { min-width: 36px; padding-right: 10px; }
             .edit-textarea { padding: 12px; font-size: 0.82em; }
+            
+            /* File Header - 文件查看页面 */
+            .file-header { gap: 10px; }
+            .file-header > span:first-child { 
+                max-width: 100%; 
+                word-break: break-all; 
+                font-size: 0.85em;
+            }
+            .view-toggle { 
+                flex-wrap: wrap; 
+                gap: 4px; 
+            }
+            .toggle-btn { 
+                padding: 4px 10px; 
+                font-size: 0.78em; 
+            }
+            .file-meta { 
+                width: 100%; 
+                justify-content: flex-start; 
+            }
+            .file-meta span { 
+                font-size: 0.8em; 
+            }
 
             /* Markdown */
             .md-body { padding: 16px 12px; font-size: 0.9em; }
@@ -505,6 +635,8 @@
             .md-body h2 { font-size: 1.3em; }
             .md-body h3 { font-size: 1.1em; }
             .md-body pre { padding: 12px; }
+            .md-body table { font-size: 0.85em; }
+            .md-body th, .md-body td { padding: 6px 8px; }
 
             /* Modal */
             .modal-box { min-width: auto; width: calc(100% - 24px); max-width: none; margin: 12px; max-height: 90vh; }
@@ -530,6 +662,12 @@
             .mon-card { padding: 14px; }
             .mon-big-num { font-size: 1.6em; }
             .net-pair { gap: 20px; }
+            
+            /* 进程表格移动端优化 */
+            .proc-table { font-size: 0.72em; }
+            .proc-table th, .proc-table td { padding: 3px 4px; }
+            .proc-table th:nth-child(2), .proc-table td:nth-child(2) { max-width: 60px; overflow: hidden; text-overflow: ellipsis; }
+            .proc-table td:last-child { max-width: 120px; }
 
             /* Checkbox */
             .checkbox-cell { width: 32px; }
@@ -544,14 +682,18 @@
             .quick-paths > span { display: none; } /* 隐藏"快捷："文字 */
             .quick-btn { padding: 3px 6px; font-size: 0.72em; }
 
-            /* 隐藏更多表格列 */
-            .dir-table th:nth-child(5), .dir-table td:nth-child(5) { display: none; } /* 隐藏权限列 */
-
             /* 工具栏按钮更紧凑 */
             .toolbar-btn { padding: 4px 8px; font-size: 0.75em; gap: 3px; }
 
             /* Action buttons */
             .action-btn { padding: 3px 6px; font-size: 0.78em; }
+            
+            /* 卡片更紧凑 */
+            .file-card { padding: 10px; }
+            .file-card-icon { font-size: 1.3em; }
+            .file-card-name { font-size: 0.9em; }
+            .file-card-meta { font-size: 0.72em; gap: 6px 12px; }
+            .file-card-btn { padding: 3px 8px; font-size: 0.72em; }
             
             /* 快捷路径表单 */
             .quick-path-form { flex-direction: column; }
@@ -1309,6 +1451,7 @@ function renderDir(data) {
         return 'sortable';
     }
     
+    // ===== 桌面端表格布局 =====
     const rows = sortedEntries.map(e => {
         const isDir = e.type === 'dir';
         const fullPath = data.path.replace(/\/$/, '') + '/' + e.name;
@@ -1340,7 +1483,61 @@ function renderDir(data) {
         </tr>`;
     }).join('');
     
-    document.getElementById('contentArea').innerHTML = toolbarHtml + `<table class="dir-table"><thead><tr><th class="checkbox-cell"></th><th class="${getSortClass('name')}" onclick="toggleSort('name')">名称</th><th class="${getSortClass('size')}" onclick="toggleSort('size')" style="text-align:right">大小</th><th class="${getSortClass('type')}" onclick="toggleSort('type')">类型</th><th>权限</th><th class="${getSortClass('owner')}" onclick="toggleSort('owner')">所有者</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+    const tableHtml = `<table class="dir-table"><thead><tr><th class="checkbox-cell"></th><th class="${getSortClass('name')}" onclick="toggleSort('name')">名称</th><th class="${getSortClass('size')}" onclick="toggleSort('size')" style="text-align:right">大小</th><th class="${getSortClass('type')}" onclick="toggleSort('type')">类型</th><th>权限</th><th class="${getSortClass('owner')}" onclick="toggleSort('owner')">所有者</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`;
+    
+    // ===== 移动端卡片布局 =====
+    const cards = sortedEntries.map(e => {
+        const isDir = e.type === 'dir';
+        const fullPath = data.path.replace(/\/$/, '') + '/' + e.name;
+        const icon = isDir ? '📁' : getFileIcon(e.name);
+        const perms = e.permissions || {};
+        const modeStr = perms.mode || (isDir ? 'drwxr-xr-x' : '-rw-r--r--');
+        const octalStr = perms.octal || (isDir ? '0o755' : '0o644');
+        const owner = perms.owner || '-';
+        const entryCanDelete = e.can_delete || false;
+        const typeName = getFileTypeName(e.name, isDir);
+        const nameClass = isDir ? '' : 'is-file';
+        
+        // 操作按钮
+        let actionBtns = `<button class="file-card-btn btn-download" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')">下载</button>`;
+        if (entryCanDelete) {
+            actionBtns += `<button class="file-card-btn btn-delete" onclick="event.stopPropagation();deleteSingleItem('${fullPath.replace(/'/g, "\\'")}')">删除</button>`;
+        }
+        
+        return `
+            <div class="file-card">
+                <div class="file-card-checkbox">
+                    <input type="checkbox" class="item-checkbox" data-path="${escHtml(fullPath)}" data-can-delete="${entryCanDelete}" onchange="toggleItem('${fullPath.replace(/'/g, "\\'")}', this.checked)">
+                </div>
+                <div class="file-card-icon">${icon}</div>
+                <div class="file-card-content">
+                    <div class="file-card-name ${nameClass}" onclick="setPath('${fullPath.replace(/'/g, "\\'")}')">${escHtml(e.name)}</div>
+                    <div class="file-card-meta">
+                        <div class="file-card-meta-item">
+                            <span class="file-card-meta-label">大小:</span>
+                            <span class="file-card-meta-value">${isDir ? '-' : formatSize(e.size)}</span>
+                        </div>
+                        <div class="file-card-meta-item">
+                            <span class="file-card-meta-label">类型:</span>
+                            <span class="file-card-meta-value">${escHtml(typeName)}</span>
+                        </div>
+                        <div class="file-card-meta-item">
+                            <span class="file-card-meta-label" style="cursor:pointer;color:#58a6ff" onclick="event.stopPropagation();showChmodModal('${fullPath.replace(/'/g, "\\'")}', '${octalStr}', '${escHtml(e.name)}')">权限:</span>
+                            <span class="file-card-meta-value">${escHtml(modeStr)}</span>
+                        </div>
+                        <div class="file-card-meta-item">
+                            <span class="file-card-meta-label">所有者:</span>
+                            <span class="file-card-meta-value">${escHtml(owner)}</span>
+                        </div>
+                    </div>
+                    <div class="file-card-actions">${actionBtns}</div>
+                </div>
+            </div>`;
+    }).join('');
+    
+    const cardListHtml = `<div class="file-card-list">${cards}</div>`;
+    
+    document.getElementById('contentArea').innerHTML = toolbarHtml + tableHtml + cardListHtml;
 }
 
 function isMarkdown(path) { return /\.(md|markdown|mdown|mkd)$/i.test(path); }
