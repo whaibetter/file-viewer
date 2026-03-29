@@ -989,43 +989,90 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
             if not os.path.isdir(cwd):
                 cwd = "/"
             
-            # 执行命令
+            # 执行命令，并在最后获取pwd
+            new_cwd = cwd
+            
             try:
-                result = subprocess.run(
-                    command,
-                    shell=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=cwd,
-                    env={**os.environ, "TERM": "xterm-256color", "LANG": "en_US.UTF-8"}
-                )
+                # 如果是cd命令，特殊处理
+                cmd_stripped = command.strip()
+                if cmd_stripped.startswith('cd ') or cmd_stripped == 'cd':
+                    # 解析cd目标
+                    parts = cmd_stripped.split(None, 1)
+                    target = parts[1] if len(parts) > 1 else ''
+                    
+                    if not target or target == '~':
+                        # cd 或 cd ~ -> 回到家目录
+                        new_cwd = os.path.expanduser('~')
+                    elif target == '-':
+                        # cd - -> 上一个目录（暂不支持，保持当前）
+                        new_cwd = cwd
+                    else:
+                        # 解析相对/绝对路径
+                        if target.startswith('/'):
+                            new_cwd = target
+                        elif target.startswith('~'):
+                            new_cwd = os.path.expanduser(target)
+                        else:
+                            new_cwd = os.path.join(cwd, target)
+                        
+                        # 规范化路径
+                        new_cwd = os.path.normpath(new_cwd)
+                    
+                    # 验证目录是否存在
+                    if os.path.isdir(new_cwd):
+                        output = ""
+                    else:
+                        output = f"cd: {target}: No such file or directory\n"
+                        new_cwd = cwd
+                else:
+                    # 执行普通命令
+                    result = subprocess.run(
+                        command,
+                        shell=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        cwd=cwd,
+                        env={**os.environ, "TERM": "xterm-256color", "LANG": "en_US.UTF-8"}
+                    )
+                    
+                    output = result.stdout
+                    if result.stderr:
+                        output += result.stderr
+                    
+                    # 如果命令中包含cd，尝试获取新目录
+                    if ' cd ' in command or command.startswith('cd '):
+                        try:
+                            pwd_result = subprocess.run(
+                                f"cd {cwd} && {command} && pwd",
+                                shell=True,
+                                capture_output=True,
+                                text=True,
+                                timeout=5,
+                                cwd=cwd
+                            )
+                            if pwd_result.returncode == 0:
+                                lines = pwd_result.stdout.strip().split('\n')
+                                if lines:
+                                    potential_cwd = lines[-1]
+                                    if os.path.isdir(potential_cwd):
+                                        new_cwd = potential_cwd
+                        except:
+                            pass
+                    
+                    self.send_json(200, {
+                        "success": True,
+                        "output": output,
+                        "exit_code": result.returncode if 'result' in dir() else 0,
+                        "cwd": new_cwd
+                    })
+                    return
                 
-                output = result.stdout
-                if result.stderr:
-                    output += result.stderr
-                
-                # 获取当前工作目录（如果命令中包含cd）
-                new_cwd = cwd
-                if command.strip().startswith("cd ") or "cd " in command:
-                    try:
-                        pwd_result = subprocess.run(
-                            "pwd",
-                            shell=True,
-                            capture_output=True,
-                            text=True,
-                            timeout=5,
-                            cwd=cwd
-                        )
-                        if pwd_result.returncode == 0:
-                            new_cwd = pwd_result.stdout.strip()
-                    except:
-                        pass
-                
+                # cd命令成功
                 self.send_json(200, {
                     "success": True,
                     "output": output,
-                    "exit_code": result.returncode,
+                    "exit_code": 0 if not output else 1,
                     "cwd": new_cwd
                 })
                 
