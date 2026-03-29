@@ -2353,8 +2353,11 @@ function initTerminal() {
                 break;
                 
             case 'Tab':
-                // Tab键暂不处理（需要后端补全支持）
+                // Tab补全
                 ev.preventDefault();
+                if (termCurrentLine) {
+                    doComplete();
+                }
                 break;
                 
             default:
@@ -2508,6 +2511,73 @@ function terminalReset() {
         termCurrentLine = '';
         termCursorPos = 0;
         initTerminal();
+    }
+}
+
+// Tab补全相关
+let lastCompletions = [];
+let lastCompletionIndex = 0;
+let lastCompletionPrefix = '';
+
+async function doComplete() {
+    // 解析当前命令中要补全的部分
+    const beforeCursor = termCurrentLine.substring(0, termCursorPos);
+    const afterCursor = termCurrentLine.substring(termCursorPos);
+    
+    // 找到最后一个需要补全的词
+    const match = beforeCursor.match(/(\S+)$/);
+    const wordToComplete = match ? match[1] : '';
+    const wordStart = match ? beforeCursor.length - wordToComplete.length : termCursorPos;
+    
+    try {
+        const resp = await fetch('/api/terminal/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                command: termCurrentLine, 
+                cwd: termCwd,
+                cursor_pos: termCursorPos 
+            })
+        });
+        
+        const data = await resp.json();
+        
+        if (data.success && data.completions && data.completions.length > 0) {
+            if (data.completions.length === 1) {
+                // 只有一个补全，直接替换
+                const completion = data.completions[0];
+                const newLine = beforeCursor.substring(0, wordStart) + completion + afterCursor;
+                const newCursorPos = wordStart + completion.length;
+                
+                termCurrentLine = newLine;
+                termCursorPos = newCursorPos;
+                redrawLine(true);
+            } else {
+                // 多个补全
+                // 先尝试补全到共同前缀
+                if (data.common_prefix && data.common_prefix.length > wordToComplete.length) {
+                    const newLine = beforeCursor.substring(0, wordStart) + data.common_prefix + afterCursor;
+                    const newCursorPos = wordStart + data.common_prefix.length;
+                    
+                    termCurrentLine = newLine;
+                    termCursorPos = newCursorPos;
+                    redrawLine(true);
+                } else {
+                    // 显示所有补全选项
+                    term.writeln('');
+                    term.writeln(data.completions.map(c => `  \x1b[36m${c}\x1b[0m`).join(''));
+                    writePrompt();
+                    term.write(termCurrentLine);
+                    // 移动光标到正确位置
+                    const moveLeft = termCurrentLine.length - termCursorPos;
+                    if (moveLeft > 0) {
+                        term.write(`\x1b[${moveLeft}D`);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        // 补全失败，静默处理
     }
 }
 

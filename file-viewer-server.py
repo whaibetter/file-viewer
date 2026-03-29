@@ -461,6 +461,9 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
         elif parsed.path == "/api/terminal":
             if self.require_auth():
                 self._handle_terminal()
+        elif parsed.path == "/api/terminal/complete":
+            if self.require_auth():
+                self._handle_terminal_complete()
         else:
             self.send_json(404, {"error": "Not Found"})
 
@@ -1028,6 +1031,137 @@ class FileViewerHandler(http.server.BaseHTTPRequestHandler):
                 
             except subprocess.TimeoutExpired:
                 self.send_json(408, {"error": "命令执行超时（30秒限制）"})
+            except Exception as e:
+                self.send_json(500, {"error": f"命令执行失败: {str(e)}"})
+                
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def _handle_terminal_complete(self):
+        """处理Tab补全请求"""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+            command = data.get("command", "")
+            cwd = data.get("cwd", "/")
+            cursor_pos = data.get("cursor_pos", 0)
+            
+            # 规范化工作目录
+            cwd = os.path.normpath(cwd)
+            if not os.path.isdir(cwd):
+                cwd = "/"
+            
+            # 获取光标前的内容
+            before_cursor = command[:cursor_pos]
+            
+            # 解析要补全的部分
+            completions = []
+            
+            # 检查是否在补全路径
+            parts = before_cursor.split()
+            if not parts:
+                # 补全命令
+                completions = self._complete_command("")
+            elif len(parts) == 1 and not before_cursor.endswith(' '):
+                # 补全命令
+                completions = self._complete_command(parts[0])
+            else:
+                # 补全路径或参数
+                last_part = parts[-1] if not before_cursor.endswith(' ') else ""
+                if last_part:
+                    completions = self._complete_path(last_part, cwd)
+            
+            # 找到共同前缀
+            common_prefix = ""
+            if completions:
+                common_prefix = completions[0]
+                for c in completions[1:]:
+                    while not c.startswith(common_prefix) and common_prefix:
+                        common_prefix = common_prefix[:-1]
+            
+            self.send_json(200, {
+                "success": True,
+                "completions": completions[:20],  # 最多返回20个
+                "common_prefix": common_prefix
+            })
+            
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+    
+    def _complete_command(self, prefix):
+        """补全命令"""
+        try:
+            # 获取PATH中的可执行文件
+            paths = os.environ.get("PATH", "/usr/bin:/bin").split(":")
+            commands = set()
+            
+            for path in paths:
+                if os.path.isdir(path):
+                    try:
+                        for f in os.listdir(path):
+                            full_path = os.path.join(path, f)
+                            if os.path.isfile(full_path) and os.access(full_path, os.X_OK):
+                                if f.startswith(prefix):
+                                    commands.add(f)
+                    except:
+                        pass
+            
+            # 添加常用内置命令
+            builtin = ['cd', 'ls', 'cat', 'grep', 'find', 'cp', 'mv', 'rm', 'mkdir', 
+                      'rmdir', 'touch', 'echo', 'pwd', 'clear', 'exit', 'help',
+                      'head', 'tail', 'less', 'more', 'wc', 'sort', 'uniq',
+                      'chmod', 'chown', 'ln', 'df', 'du', 'free', 'top', 'ps',
+                      'kill', 'jobs', 'bg', 'fg', 'export', 'source', 'alias',
+                      'tar', 'gzip', 'gunzip', 'zip', 'unzip', 'curl', 'wget',
+                      'systemctl', 'journalctl', 'docker', 'kubectl', 'git']
+            
+            for cmd in builtin:
+                if cmd.startswith(prefix):
+                    commands.add(cmd)
+            
+            return sorted(list(commands))[:20]
+        except:
+            return []
+    
+    def _complete_path(self, partial_path, cwd):
+        """补全路径"""
+        try:
+            # 处理相对路径和绝对路径
+            if partial_path.startswith('/'):
+                base_dir = os.path.dirname(partial_path)
+                prefix = os.path.basename(partial_path)
+            elif partial_path.startswith('~'):
+                home = os.path.expanduser('~')
+                rest = partial_path[1:]
+                if rest.startswith('/'):
+                    base_dir = os.path.dirname(home + rest)
+                    prefix = os.path.basename(home + rest)
+                else:
+                    base_dir = home
+                    prefix = rest
+            else:
+                base_dir = os.path.dirname(os.path.join(cwd, partial_path))
+                prefix = os.path.basename(partial_path)
+            
+            if not base_dir:
+                base_dir = cwd if not partial_path.startswith('/') else '/'
+            
+            if not os.path.isdir(base_dir):
+                return []
+            
+            completions = []
+            for f in os.listdir(base_dir):
+                if f.startswith(prefix):
+                    full_path = os.path.join(base_dir, f)
+                    # 添加/标记目录
+                    if os.path.isdir(full_path):
+                        completions.append(f + '/')
+                    else:
+                        completions.append(f)
+            
+            return sorted(completions)[:20]
+        except:
+            return []
             except Exception as e:
                 self.send_json(500, {"error": f"命令执行失败: {str(e)}"})
                 
