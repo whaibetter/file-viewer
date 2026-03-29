@@ -26,28 +26,64 @@ from pathlib import Path
 CONFIG_FILE = Path("/etc/file-viewer/config.yaml")
 PROJECT_CONFIG_FILE = Path(__file__).parent / "config.yaml"
 
+# 全局配置对象
+_config = None
+_config_file_path = None
+
 
 def load_config() -> dict:
     """加载 YAML 配置文件"""
+    global _config, _config_file_path
     # 优先使用系统配置，其次使用项目目录配置
     config_path = CONFIG_FILE if CONFIG_FILE.exists() else PROJECT_CONFIG_FILE
     
     if config_path.exists():
         try:
             with config_path.open("r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
+                _config = yaml.safe_load(f) or {}
+                _config_file_path = config_path
+                return _config
         except Exception as e:
             print(f"Warning: Failed to load config from {config_path}: {e}")
     
-    return {}
+    _config = {}
+    return _config
+
+
+def save_config(config: dict = None) -> bool:
+    """保存完整配置到文件"""
+    global _config
+    if config:
+        _config = config
+    try:
+        config_path = _config_file_path or CONFIG_FILE
+        # 确保目录存在
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        with config_path.open("w", encoding="utf-8") as f:
+            yaml.dump(_config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        return True
+    except Exception as e:
+        print(f"Failed to save config: {e}")
+        return False
+
+
+def get_config() -> dict:
+    """获取当前配置"""
+    global _config
+    if _config is None:
+        load_config()
+    return _config
 
 
 # 加载配置
-_config = load_config()
+load_config()
 
 # === 从配置文件读取设置 ===
 _server_cfg = _config.get("server", {})
 _storage_cfg = _config.get("storage", {})
+_security_cfg = _config.get("security", {})
+_ui_cfg = _config.get("ui", {})
+_permissions_cfg = _config.get("permissions", {})
 _download_cfg = _config.get("download_limits", {})
 
 # 服务器配置
@@ -57,15 +93,11 @@ SESSION_TIMEOUT = _server_cfg.get("session_timeout", 3600)
 SECRET_KEY = secrets.token_bytes(32)
 
 # 数据存储路径
-PASSWORD_FILE = Path(_storage_cfg.get("password_file", "/etc/file-viewer.passwd"))
-WHITELIST_FILE = Path(_storage_cfg.get("whitelist_file", "/etc/file-viewer-whitelist.json"))
-
-# 删除白名单
-DELETE_WHITELIST = _config.get("delete_whitelist", ["/tmp", "/var/tmp"])
+PASSWORD_FILE = Path(_storage_cfg.get("password_file", "/etc/file-viewer/passwd"))
 
 # 文件夹权限配置
-FOLDER_PERMISSIONS = _config.get("folder_permissions", {})
-DEFAULT_PERMISSIONS = _config.get("default_permissions", {"read": True, "write": True})
+FOLDER_PERMISSIONS = _permissions_cfg.get("folder_permissions", {})
+DEFAULT_PERMISSIONS = _permissions_cfg.get("default_permissions", {"read": True, "write": True})
 
 # 下载限制配置
 MAX_SINGLE_FILE_SIZE = _download_cfg.get("max_single_file_size", 100 * 1024 * 1024)
@@ -75,65 +107,50 @@ MAX_DIR_DEPTH = _download_cfg.get("max_dir_depth", 20)
 MAX_FILE_PREVIEW_SIZE = _download_cfg.get("max_file_preview_size", 2 * 1024 * 1024)
 
 
-# === 白名单管理 ===
+# === 配置管理函数 ===
 def load_whitelist() -> list:
-    """加载删除白名单"""
-    try:
-        if WHITELIST_FILE.exists():
-            with WHITELIST_FILE.open("r", encoding="utf-8") as f:
-                return json.load(f)
-    except Exception:
-        pass
-    return DELETE_WHITELIST.copy()
+    """加载删除白名单（从主配置文件）"""
+    return _security_cfg.get("delete_whitelist", ["/tmp", "/var/tmp"])
 
 
 def save_whitelist(whitelist: list) -> bool:
-    """保存删除白名单"""
-    try:
-        with WHITELIST_FILE.open("w", encoding="utf-8") as f:
-            json.dump(whitelist, f, ensure_ascii=False, indent=2)
-        return True
-    except Exception:
-        return False
-
-
-def save_config(config: dict) -> bool:
-    """保存完整配置到文件"""
-    try:
-        config_path = CONFIG_FILE if CONFIG_FILE.exists() else PROJECT_CONFIG_FILE
-        with config_path.open("w", encoding="utf-8") as f:
-            yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-        # 重新加载全局配置
-        global _config
-        _config = config
-        return True
-    except Exception as e:
-        print(f"Failed to save config: {e}")
-        return False
+    """保存删除白名单（到主配置文件）"""
+    global _config, _security_cfg
+    if "security" not in _config:
+        _config["security"] = {}
+    _config["security"]["delete_whitelist"] = whitelist
+    _security_cfg["delete_whitelist"] = whitelist
+    return save_config()
 
 
 def get_quick_paths() -> list:
-    """获取快捷路径配置"""
-    return _config.get("quick_paths", [])
+    """获取快捷路径配置（从主配置文件）"""
+    return _ui_cfg.get("quick_paths", [])
 
 
 def save_quick_paths(paths: list) -> bool:
-    """保存快捷路径配置"""
-    global _config
-    _config["quick_paths"] = paths
-    return save_config(_config)
+    """保存快捷路径配置（到主配置文件）"""
+    global _config, _ui_cfg
+    if "ui" not in _config:
+        _config["ui"] = {}
+    _config["ui"]["quick_paths"] = paths
+    _ui_cfg["quick_paths"] = paths
+    return save_config()
 
 
 def get_quick_cmds() -> list:
-    """获取快捷命令配置"""
-    return _config.get("quick_commands", [])
+    """获取快捷命令配置（从主配置文件）"""
+    return _ui_cfg.get("quick_commands", [])
 
 
 def save_quick_cmds(cmds: list) -> bool:
-    """保存快捷命令配置"""
-    global _config
-    _config["quick_commands"] = cmds
-    return save_config(_config)
+    """保存快捷命令配置（到主配置文件）"""
+    global _config, _ui_cfg
+    if "ui" not in _config:
+        _config["ui"] = {}
+    _config["ui"]["quick_commands"] = cmds
+    _ui_cfg["quick_commands"] = cmds
+    return save_config()
 
 
 def is_in_whitelist(path: str) -> bool:

@@ -68,12 +68,18 @@ file-viewer/
 
 ### 配置存储位置
 
-| 配置项 | 存储位置 | 说明 |
+所有配置统一存储在主配置文件中：
+
+| 配置项 | 配置路径 | 说明 |
 |--------|----------|------|
-| 删除白名单 | `/etc/file-viewer-whitelist.json` | JSON格式，持久化 |
-| 快捷路径 | `/etc/file-viewer/config.yaml` | YAML格式，持久化 |
-| 快捷命令 | `/etc/file-viewer/config.yaml` | YAML格式，持久化 |
-| 登录密码 | `/etc/file-viewer.passwd` | SHA256哈希 |
+| 删除白名单 | `security.delete_whitelist` | 允许删除的路径列表 |
+| 快捷路径 | `ui.quick_paths` | 文件浏览快捷按钮 |
+| 快捷命令 | `ui.quick_commands` | 终端快捷命令按钮 |
+| 登录密码 | `/etc/file-viewer/passwd` | SHA256哈希存储 |
+
+**配置文件位置（按优先级）：**
+1. `/etc/file-viewer/config.yaml` - 系统配置
+2. `./config.yaml` - 项目目录配置
 
 ### YAML 配置文件
 
@@ -82,53 +88,74 @@ file-viewer/
 2. `./config.yaml` - 项目目录配置
 
 ```yaml
+# File Viewer 主配置文件
+# 所有配置统一管理
+
+# ============================================================
 # 服务器配置
+# ============================================================
 server:
   host: "127.0.0.1"
   port: 9001
   session_timeout: 3600  # 会话超时时间（秒）
 
-# 数据存储路径
+# ============================================================
+# 数据存储配置
+# ============================================================
 storage:
-  password_file: "/etc/file-viewer.passwd"
-  whitelist_file: "/etc/file-viewer-whitelist.json"
+  config_dir: "/etc/file-viewer"           # 配置文件目录
+  password_file: "/etc/file-viewer/passwd" # 密码文件路径
 
-# 删除白名单 - 只允许删除这些路径下的文件
-delete_whitelist:
-  - "/tmp"
-  - "/var/tmp"
-  - "/var/www/uploads"  # 可添加更多路径
+# ============================================================
+# 安全配置
+# ============================================================
+security:
+  # 删除白名单 - 只允许删除这些路径下的文件
+  delete_whitelist:
+    - "/tmp"
+    - "/var/tmp"
+    - "/var/www/uploads"  # 可添加更多路径
 
-# 快捷路径 - 文件浏览页面的快捷访问路径
-quick_paths:
-  - { path: "/", name: "/ 根目录" }
-  - { path: "/etc", name: "/etc" }
-  - { path: "/var/log", name: "/var/log" }
+# ============================================================
+# 界面配置
+# ============================================================
+ui:
+  # 快捷路径 - 文件浏览页面的快捷访问路径
+  quick_paths:
+    - { path: "/", name: "/ 根目录" }
+    - { path: "/etc", name: "/etc" }
+    - { path: "/var/log", name: "/var/log" }
 
-# 快捷命令 - 终端页面的快捷命令按钮
-quick_commands:
-  - { cmd: "ls -la --color=auto", name: "ls -la" }
-  - { cmd: "df -h", name: "df -h" }
-  - { cmd: "docker ps -a", name: "docker" }
+  # 快捷命令 - 终端页面的快捷命令按钮
+  quick_commands:
+    - { cmd: "ls -la --color=auto", name: "ls -la" }
+    - { cmd: "df -h", name: "df -h" }
+    - { cmd: "docker ps -a", name: "docker" }
 
-# 文件夹权限配置
-folder_permissions:
-  "/var/www/html":
+# ============================================================
+# 权限配置
+# ============================================================
+permissions:
+  # 文件夹权限配置（针对不同目录配置读写权限）
+  folder_permissions:
+    "/var/www/html":
+      read: true
+      write: true
+    "/etc/nginx":
+      read: true
+      write: true
+    "/etc":
+      read: true
+      write: false
+
+  # 默认权限
+  default_permissions:
     read: true
     write: true
-  "/etc/nginx":
-    read: true
-    write: true
-  "/etc":
-    read: true
-    write: false
 
-# 默认权限
-default_permissions:
-  read: true
-  write: true
-
+# ============================================================
 # 下载限制配置
+# ============================================================
 download_limits:
   max_single_file_size: 104857600    # 单文件最大 100MB
   max_total_download_size: 209715200 # 批量下载最大 200MB
