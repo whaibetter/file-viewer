@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
-File Viewer Backend Service with Authentication
+File Viewer Backend Service with Flask-SocketIO
+Supports HTTP API
 """
 
-import http.server
 import json
 import os
 import stat
-import urllib.parse
 import hashlib
 import time
 import secrets
@@ -21,10 +20,12 @@ import io
 import shutil
 import yaml
 from pathlib import Path
+from flask import Flask, request, jsonify, send_from_directory, Response
+from flask_socketio import SocketIO
 
 # === 配置文件路径 ===
-CONFIG_FILE = Path("/etc/file-viewer/config.yaml")
-PROJECT_CONFIG_FILE = Path(__file__).parent / "config.yaml"
+PROJECT_DIR = Path("/home/file-viewer")
+PROJECT_CONFIG_FILE = PROJECT_DIR / "config.yaml"
 
 # 全局配置对象
 _config = None
@@ -34,9 +35,8 @@ _config_file_path = None
 def load_config() -> dict:
     """加载 YAML 配置文件"""
     global _config, _config_file_path
-    # 优先使用系统配置，其次使用项目目录配置
-    config_path = CONFIG_FILE if CONFIG_FILE.exists() else PROJECT_CONFIG_FILE
-    
+    config_path = PROJECT_CONFIG_FILE
+
     if config_path.exists():
         try:
             with config_path.open("r", encoding="utf-8") as f:
@@ -45,7 +45,7 @@ def load_config() -> dict:
                 return _config
         except Exception as e:
             print(f"Warning: Failed to load config from {config_path}: {e}")
-    
+
     _config = {}
     return _config
 
@@ -56,8 +56,7 @@ def save_config(config: dict = None) -> bool:
     if config:
         _config = config
     try:
-        config_path = _config_file_path or CONFIG_FILE
-        # 确保目录存在
+        config_path = _config_file_path or PROJECT_CONFIG_FILE
         config_path.parent.mkdir(parents=True, exist_ok=True)
         with config_path.open("w", encoding="utf-8") as f:
             yaml.dump(_config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
@@ -90,14 +89,20 @@ _download_cfg = _config.get("download_limits", {})
 SERVER_HOST = _server_cfg.get("host", "127.0.0.1")
 SERVER_PORT = _server_cfg.get("port", 9001)
 SESSION_TIMEOUT = _server_cfg.get("session_timeout", 3600)
-SECRET_KEY = secrets.token_bytes(32)
 
-# 数据存储路径
-PASSWORD_FILE = Path(_storage_cfg.get("password_file", "/etc/file-viewer/passwd"))
+# === 数据存储目录配置 ===
+_data_dir_config = _storage_cfg.get("data_dir", "/etc/file-viewer")
+DATA_DIR = Path(_data_dir_config) if Path(_data_dir_config).is_absolute() else (_config_file_path.parent / _data_dir_config) if _config_file_path else Path(_data_dir_config)
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# 数据文件路径
+PASSWORD_FILE = DATA_DIR / "passwd"
+QUICK_PATHS_FILE = DATA_DIR / "quick_paths.json"
 
 # 文件夹权限配置
-FOLDER_PERMISSIONS = _permissions_cfg.get("folder_permissions", {})
-DEFAULT_PERMISSIONS = _permissions_cfg.get("default_permissions", {"read": True, "write": True})
+FOLDER_PERMISSIONS = _permissions_cfg.get("folder_permissions") or {}
+DEFAULT_PERMISSIONS = _permissions_cfg.get("default_permissions") or {"read": True, "write": True}
 
 # 下载限制配置
 MAX_SINGLE_FILE_SIZE = _download_cfg.get("max_single_file_size", 100 * 1024 * 1024)
@@ -105,6 +110,59 @@ MAX_TOTAL_DOWNLOAD_SIZE = _download_cfg.get("max_total_download_size", 200 * 102
 MAX_FILES_IN_ZIP = _download_cfg.get("max_files_in_zip", 500)
 MAX_DIR_DEPTH = _download_cfg.get("max_dir_depth", 20)
 MAX_FILE_PREVIEW_SIZE = _download_cfg.get("max_file_preview_size", 2 * 1024 * 1024)
+
+# === Flask 应用 ===
+app = Flask(__name__, static_folder=None)
+app.config['SECRET_KEY'] = secrets.token_hex(32)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# === Session 管理 ===
+sessions = {}
+
+
+def cleanup_sessions():
+    now = int(time.time())
+    expired = [sid for sid, sess in sessions.items() if sess["expire"] < now]
+    for sid in expired:
+        del sessions[sid]
+
+
+def create_session(user: str) -> str:
+    cleanup_sessions()
+    sid = secrets.token_urlsafe(32)
+    sessions[sid] = {"user": user, "expire": int(time.time()) + SESSION_TIMEOUT}
+    return sid
+
+
+def get_session(sid: str):
+    cleanup_sessions()
+    sess = sessions.get(sid)
+    if sess and sess["expire"] >= int(time.time()):
+        return sess
+    return None
+
+
+def delete_session(sid: str):
+    sessions.pop(sid, None)
+
+
+def get_cookie(name: str):
+    """获取 cookie"""
+    cookies = request.headers.get('Cookie', '')
+    for cookie in cookies.split(';'):
+        if '=' in cookie:
+            k, v = cookie.strip().split('=', 1)
+            if k == name:
+                return v
+    return None
+
+
+def require_auth():
+    """验证登录状态"""
+    sid = get_cookie('sessionid')
+    if not sid or not get_session(sid):
+        return None
+    return sid
 
 
 # === 配置管理函数 ===
@@ -124,33 +182,30 @@ def save_whitelist(whitelist: list) -> bool:
 
 
 def get_quick_paths() -> list:
-    """获取快捷路径配置（从主配置文件）"""
-    return _ui_cfg.get("quick_paths", [])
+    """获取快捷路径配置（从 JSON 文件）"""
+    try:
+        if QUICK_PATHS_FILE.exists():
+            with QUICK_PATHS_FILE.open("r", encoding="utf-8") as f:
+                return json.load(f)
+    except:
+        pass
+    return [
+        {"path": "/", "name": "/ 根目录"},
+        {"path": "/etc", "name": "/etc"},
+        {"path": "/var/log", "name": "/var/log"},
+        {"path": "/var/www/html", "name": "/var/www/html"},
+    ]
 
 
 def save_quick_paths(paths: list) -> bool:
-    """保存快捷路径配置（到主配置文件）"""
-    global _config, _ui_cfg
-    if "ui" not in _config:
-        _config["ui"] = {}
-    _config["ui"]["quick_paths"] = paths
-    _ui_cfg["quick_paths"] = paths
-    return save_config()
-
-
-def get_quick_cmds() -> list:
-    """获取快捷命令配置（从主配置文件）"""
-    return _ui_cfg.get("quick_commands", [])
-
-
-def save_quick_cmds(cmds: list) -> bool:
-    """保存快捷命令配置（到主配置文件）"""
-    global _config, _ui_cfg
-    if "ui" not in _config:
-        _config["ui"] = {}
-    _config["ui"]["quick_commands"] = cmds
-    _ui_cfg["quick_commands"] = cmds
-    return save_config()
+    """保存快捷路径配置（到 JSON 文件）"""
+    try:
+        with QUICK_PATHS_FILE.open("w", encoding="utf-8") as f:
+            json.dump(paths, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"Failed to save quick paths: {e}")
+        return False
 
 
 def is_in_whitelist(path: str) -> bool:
@@ -159,10 +214,24 @@ def is_in_whitelist(path: str) -> bool:
     normalized_path = os.path.normpath(path)
     for allowed_path in whitelist:
         normalized_allowed = os.path.normpath(allowed_path)
-        # 检查路径是否以白名单路径开头
-        if normalized_path == normalized_allowed or normalized_path.startswith(normalized_allowed + os.sep):
+        if normalized_path == normalized_allowed:
+            return True
+        if normalized_path.startswith(normalized_allowed + os.sep):
             return True
     return False
+
+
+def format_whitelist_with_types(whitelist: list) -> list:
+    """为白名单添加类型信息"""
+    result = []
+    for p in whitelist:
+        normalized = os.path.normpath(p)
+        if os.path.exists(normalized):
+            path_type = "file" if os.path.isfile(normalized) else "dir"
+        else:
+            path_type = "unknown"
+        result.append({"path": p, "type": path_type})
+    return result
 
 
 def get_file_permissions(path: str) -> dict:
@@ -208,7 +277,6 @@ def check_permission(path: str, action: str) -> tuple:
         else:
             return False, f"{action} permission denied for this folder"
     else:
-        # delete 操作由白名单控制，默认允许
         if action == "delete":
             return True, "allowed"
         if action == "read":
@@ -218,48 +286,38 @@ def check_permission(path: str, action: str) -> tuple:
 
 
 def verify_password(password: str) -> bool:
-    if not PASSWORD_FILE.exists():
-        return False
+    """验证密码 - 从密码文件读取哈希"""
     try:
-        with PASSWORD_FILE.open("r") as f:
-            stored_hash = f.read().strip()
-        return hmac.compare_digest(
-            stored_hash,
-            hashlib.sha256(password.encode()).hexdigest()
-        )
+        if PASSWORD_FILE.exists():
+            with PASSWORD_FILE.open("r") as f:
+                stored_hash = f.read().strip()
+            return hmac.compare_digest(
+                stored_hash,
+                hashlib.sha256(password.encode()).hexdigest()
+            )
+        return False
     except Exception:
         return False
 
 
-sessions = {}
+def change_password(old_password: str, new_password: str) -> tuple:
+    """修改密码 - 验证旧密码后设置新密码"""
+    if not verify_password(old_password):
+        return False, "旧密码错误"
+    if not new_password or len(new_password) < 4:
+        return False, "新密码长度至少4位"
+    try:
+        new_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        PASSWORD_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with PASSWORD_FILE.open("w") as f:
+            f.write(new_hash)
+        os.chmod(PASSWORD_FILE, 0o600)
+        return True, "密码修改成功"
+    except Exception as e:
+        return False, f"修改失败: {e}"
 
 
-def cleanup_sessions():
-    now = int(time.time())
-    expired = [sid for sid, sess in sessions.items() if sess["expire"] < now]
-    for sid in expired:
-        del sessions[sid]
-
-
-def create_session(user: str) -> str:
-    cleanup_sessions()
-    sid = secrets.token_urlsafe(32)
-    sessions[sid] = {"user": user, "expire": int(time.time()) + SESSION_TIMEOUT}
-    return sid
-
-
-def get_session(sid: str):
-    cleanup_sessions()
-    sess = sessions.get(sid)
-    if sess and sess["expire"] >= int(time.time()):
-        return sess
-    return None
-
-
-def delete_session(sid: str):
-    sessions.pop(sid, None)
-
-
+# === 系统信息收集 ===
 def _read_file(path: str, default: str = "") -> str:
     try:
         with open(path) as f:
@@ -437,901 +495,504 @@ def get_dir_size_and_count(path: str) -> tuple:
     return total_size, file_count
 
 
-class FileViewerHandler(http.server.BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
 
-    def send_json(self, status, data, headers=None):
-        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        if headers:
-            for k, v in headers.items():
-                self.send_header(k, v)
-        self.end_headers()
-        self.wfile.write(body)
 
-    def get_cookie(self, name: str):
-        for cookie in self.headers.get("Cookie", "").split(";"):
-            if "=" in cookie:
-                k, v = cookie.strip().split("=", 1)
-                if k == name:
-                    return v
-        return None
 
-    def require_auth(self) -> bool:
-        sid = self.get_cookie("sessionid")
-        if not sid or not get_session(sid):
-            self.send_json(401, {"error": "Unauthorized"})
-            return False
-        return True
+# === HTTP 路由 ===
+@app.route('/')
+@app.route('/index.html')
+def index():
+    index_path = PROJECT_DIR / 'index.html'
+    if index_path.exists():
+        with open(index_path, 'r', encoding='utf-8') as f:
+            return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    return jsonify({'error': 'index.html not found'}), 404
 
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Cookie")
-        self.end_headers()
 
-    def do_POST(self):
-        parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/login":
-            try:
-                length = int(self.headers.get("Content-Length", 0))
-                data = json.loads(self.rfile.read(length).decode("utf-8"))
-                if verify_password(data.get("password", "")):
-                    sid = create_session("admin")
-                    self.send_json(200, {"success": True}, {"Set-Cookie": f"sessionid={sid}; Path=/; Max-Age={SESSION_TIMEOUT}; HttpOnly; SameSite=Strict"})
-                else:
-                    self.send_json(401, {"error": "Invalid password"})
-            except Exception:
-                self.send_json(400, {"error": "Bad request"})
-        elif parsed.path == "/api/logout":
-            if self.require_auth():
-                sid = self.get_cookie("sessionid")
-                if sid:
-                    delete_session(sid)
-                self.send_json(200, {"success": True}, {"Set-Cookie": "sessionid=; Path=/; Max-Age=0"})
-        elif parsed.path == "/api/file/save":
-            if self.require_auth():
-                self._handle_save_file()
-        elif parsed.path == "/api/file/create":
-            if self.require_auth():
-                self._handle_create()
-        elif parsed.path == "/api/file/chmod":
-            if self.require_auth():
-                self._handle_chmod()
-        elif parsed.path == "/api/file/upload":
-            if self.require_auth():
-                self._handle_upload()
-        elif parsed.path == "/api/file/delete":
-            if self.require_auth():
-                self._handle_delete()
-        elif parsed.path == "/api/file/download/batch":
-            if self.require_auth():
-                self._handle_batch_download()
-        elif parsed.path == "/api/whitelist":
-            if self.require_auth():
-                self._handle_whitelist()
-        elif parsed.path == "/api/quickpaths":
-            if self.require_auth():
-                self._handle_quickpaths()
-        elif parsed.path == "/api/quickcmds":
-            if self.require_auth():
-                self._handle_quickcmds()
-        elif parsed.path == "/api/terminal":
-            if self.require_auth():
-                self._handle_terminal()
-        elif parsed.path == "/api/terminal/complete":
-            if self.require_auth():
-                self._handle_terminal_complete()
+@app.route('/api/login', methods=['POST'])
+def login():
+    try:
+        data = request.json
+        password = data.get('password', '')
+        if verify_password(password):
+            sid = create_session('admin')
+            response = jsonify({'success': True})
+            response.set_cookie('sessionid', sid, max_age=SESSION_TIMEOUT, httponly=True, samesite='Lax')
+            return response
         else:
-            self.send_json(404, {"error": "Not Found"})
+            return jsonify({'error': 'Invalid password'}), 401
+    except Exception as e:
+        return jsonify({'error': 'Bad request'}), 400
 
-    def do_GET(self):
-        parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/" or parsed.path == "/index.html":
-            # 提供静态文件 index.html
-            self._serve_static_file("index.html")
-        elif parsed.path == "/api/auth/check":
-            sid = self.get_cookie("sessionid")
-            self.send_json(200, {"authenticated": bool(get_session(sid))})
-        elif parsed.path == "/api/system":
-            if self.require_auth():
-                self.send_json(200, collect_system_info())
-        elif parsed.path == "/api/file":
-            if self.require_auth():
-                self._handle_file(parsed)
-        elif parsed.path == "/api/file/download":
-            if self.require_auth():
-                self._handle_single_download(parsed)
-        else:
-            self.send_json(404, {"error": "Not Found"})
-    
-    def _serve_static_file(self, filename):
-        """提供静态文件服务"""
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    sid = get_cookie('sessionid')
+    if sid:
+        delete_session(sid)
+    response = jsonify({'success': True})
+    response.set_cookie('sessionid', '', max_age=0)
+    return response
+
+
+@app.route('/api/auth/check', methods=['GET'])
+def auth_check():
+    sid = get_cookie('sessionid')
+    return jsonify({'authenticated': bool(get_session(sid))})
+
+
+@app.route('/api/system', methods=['GET'])
+def system():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    return jsonify(collect_system_info())
+
+
+@app.route('/api/file', methods=['GET'])
+def file_info():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    path = request.args.get('path', '')
+    if not path:
+        return jsonify({'error': "Missing 'path' parameter"}), 400
+
+    file_path = os.path.normpath(path)
+    if not os.path.exists(file_path):
+        return jsonify({'error': f'File not found: {file_path}'}), 404
+
+    allowed, reason = check_permission(file_path, 'read')
+    if not allowed:
+        return jsonify({'error': reason}), 403
+
+    folder_perms = get_folder_permission_config(file_path)
+
+    if os.path.isdir(file_path):
         try:
-            # 使用项目目录下的静态文件
-            project_dir = Path("/home/file-viewer")
-            file_path = project_dir / filename
-            
-            if not file_path.exists():
-                self.send_json(404, {"error": "File not found"})
-                return
-            
-            # 确定 MIME 类型
-            mime_types = {
-                ".html": "text/html; charset=utf-8",
-                ".css": "text/css; charset=utf-8",
-                ".js": "application/javascript; charset=utf-8",
-                ".json": "application/json; charset=utf-8",
-            }
-            ext = file_path.suffix.lower()
-            mime_type = mime_types.get(ext, "application/octet-stream")
-            
-            with open(file_path, "rb") as f:
-                content = f.read()
-            
-            self.send_response(200)
-            self.send_header("Content-Type", mime_type)
-            self.send_header("Content-Length", str(len(content)))
-            self.end_headers()
-            self.wfile.write(content)
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_file(self, parsed):
-        params = urllib.parse.parse_qs(parsed.query)
-        path_list = params.get("path", [])
-        if not path_list:
-            self.send_json(400, {"error": "Missing 'path' parameter"})
-            return
-        file_path = os.path.normpath(path_list[0])
-        if not os.path.exists(file_path):
-            self.send_json(404, {"error": f"File not found: {file_path}"})
-            return
-        allowed, reason = check_permission(file_path, "read")
-        if not allowed:
-            self.send_json(403, {"error": reason})
-            return
-        folder_perms = get_folder_permission_config(file_path)
-        if os.path.isdir(file_path):
-            try:
-                entries = []
-                for name in sorted(os.listdir(file_path)):
-                    full = os.path.join(file_path, name)
-                    entries.append({
-                        "name": name,
-                        "type": "dir" if os.path.isdir(full) else "file",
-                        "size": os.path.getsize(full) if os.path.isfile(full) else None,
-                        "permissions": get_file_permissions(full),
-                        "can_delete": is_in_whitelist(full),
-                    })
-                # 检查当前目录是否在白名单中（用于批量删除按钮）
-                dir_can_delete = is_in_whitelist(file_path)
-                self.send_json(200, {"type": "directory", "path": file_path, "entries": entries, "permissions": get_file_permissions(file_path), "folder_permissions": folder_perms, "can_delete": dir_can_delete})
-            except PermissionError:
-                self.send_json(403, {"error": "Permission denied"})
-            return
-        size = os.path.getsize(file_path)
-        if size > MAX_FILE_PREVIEW_SIZE:
-            limit_mb = MAX_FILE_PREVIEW_SIZE // (1024 * 1024)
-            self.send_json(413, {"error": f"File too large ({size} bytes). Limit is {limit_mb} MB."})
-            return
-        try:
-            with open(file_path, "rb") as f:
-                raw = f.read()
-            try:
-                file_content = raw.decode("utf-8")
-                encoding = "utf-8"
-            except UnicodeDecodeError:
-                try:
-                    file_content = raw.decode("gbk")
-                    encoding = "gbk"
-                except UnicodeDecodeError:
-                    self.send_json(415, {"error": "Binary file, cannot display as text"})
-                    return
-            self.send_json(200, {"type": "file", "path": file_path, "size": size, "encoding": encoding, "content": file_content, "permissions": get_file_permissions(file_path), "folder_permissions": folder_perms})
-        except PermissionError:
-            self.send_json(403, {"error": "Permission denied"})
-
-    def _handle_single_download(self, parsed):
-        params = urllib.parse.parse_qs(parsed.query)
-        path_list = params.get("path", [])
-        if not path_list:
-            self.send_json(400, {"error": "Missing 'path' parameter"})
-            return
-        file_path = os.path.normpath(path_list[0])
-        if not os.path.exists(file_path):
-            self.send_json(404, {"error": f"File not found: {file_path}"})
-            return
-        allowed, reason = check_permission(file_path, "read")
-        if not allowed:
-            self.send_json(403, {"error": reason})
-            return
-        if os.path.isdir(file_path):
-            self._send_directory_as_zip(file_path)
-        else:
-            self._send_file(file_path)
-
-    def _send_file(self, file_path):
-        try:
-            size = os.path.getsize(file_path)
-            if size > MAX_SINGLE_FILE_SIZE:
-                self.send_json(413, {"error": f"文件过大 ({size // (1024*1024)} MB)，超过限制 ({MAX_SINGLE_FILE_SIZE // (1024*1024)} MB)"})
-                return
-            filename = os.path.basename(file_path)
-            with open(file_path, "rb") as f:
-                content = f.read()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/octet-stream")
-            self.send_header("Content-Length", str(size))
-            self.send_header("Content-Disposition", f'attachment; filename="{urllib.parse.quote(filename)}"')
-            self.end_headers()
-            self.wfile.write(content)
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _send_directory_as_zip(self, dir_path):
-        try:
-            # 检查目录大小和文件数
-            total_size, file_count = get_dir_size_and_count(dir_path)
-            
-            if file_count > MAX_FILES_IN_ZIP:
-                self.send_json(413, {"error": f"目录文件过多 ({file_count})，超过限制 ({MAX_FILES_IN_ZIP})"})
-                return
-            if total_size > MAX_TOTAL_DOWNLOAD_SIZE:
-                self.send_json(413, {"error": f"目录过大 ({total_size // (1024*1024)} MB)，超过限制 ({MAX_TOTAL_DOWNLOAD_SIZE // (1024*1024)} MB)"})
-                return
-            
-            dirname = os.path.basename(dir_path) or "root"
-            zip_buffer = io.BytesIO()
-            
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-                current_files = 0
-                current_size = 0
-                for root, dirs, files in os.walk(dir_path):
-                    depth = root[len(dir_path):].count(os.sep)
-                    if depth > MAX_DIR_DEPTH:
-                        continue
-                    for file in files:
-                        if current_files >= MAX_FILES_IN_ZIP:
-                            break
-                        file_full = os.path.join(root, file)
-                        try:
-                            file_size = os.path.getsize(file_full)
-                            if file_size > MAX_SINGLE_FILE_SIZE:
-                                continue  # 跳过超大文件
-                            if current_size + file_size > MAX_TOTAL_DOWNLOAD_SIZE:
-                                continue  # 跳过以保持总大小限制
-                            arcname = os.path.relpath(file_full, os.path.dirname(dir_path))
-                            zf.write(file_full, arcname)
-                            current_files += 1
-                            current_size += file_size
-                        except OSError:
-                            pass
-                    for d in dirs:
-                        dir_full = os.path.join(root, d)
-                        if not os.listdir(dir_full):
-                            arcname = os.path.relpath(dir_full, os.path.dirname(dir_path)) + '/'
-                            zf.write(dir_full, arcname)
-            
-            zip_data = zip_buffer.getvalue()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/zip")
-            self.send_header("Content-Length", str(len(zip_data)))
-            self.send_header("Content-Disposition", f'attachment; filename="{urllib.parse.quote(dirname)}.zip"')
-            self.end_headers()
-            self.wfile.write(zip_data)
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_batch_download(self):
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            paths = data.get("paths", [])
-            if not paths:
-                self.send_json(400, {"error": "Missing 'paths' parameter"})
-                return
-            for p in paths:
-                allowed, reason = check_permission(p, "read")
-                if not allowed:
-                    self.send_json(403, {"error": f"Access denied: {p}"})
-                    return
-            if len(paths) == 1:
-                file_path = os.path.normpath(paths[0])
-                if os.path.isdir(file_path):
-                    self._send_directory_as_zip(file_path)
-                else:
-                    self._send_file(file_path)
-                return
-            
-            # 批量下载 - 预检查大小
-            total_size = 0
-            file_count = 0
-            for p in paths:
-                p = os.path.normpath(p)
-                if os.path.isdir(p):
-                    s, c = get_dir_size_and_count(p)
-                    total_size += s
-                    file_count += c
-                elif os.path.isfile(p):
-                    total_size += os.path.getsize(p)
-                    file_count += 1
-                if file_count > MAX_FILES_IN_ZIP:
-                    self.send_json(413, {"error": f"文件数量过多 ({file_count})，超过限制 ({MAX_FILES_IN_ZIP})"})
-                    return
-                if total_size > MAX_TOTAL_DOWNLOAD_SIZE:
-                    self.send_json(413, {"error": f"总大小过大 ({total_size // (1024*1024)} MB)，超过限制 ({MAX_TOTAL_DOWNLOAD_SIZE // (1024*1024)} MB)"})
-                    return
-            
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-                for file_path in paths:
-                    file_path = os.path.normpath(file_path)
-                    if not os.path.exists(file_path):
-                        continue
-                    if os.path.isdir(file_path):
-                        dirname = os.path.basename(file_path)
-                        for root, dirs, files in os.walk(file_path):
-                            for file in files:
-                                file_full = os.path.join(root, file)
-                                try:
-                                    if os.path.getsize(file_full) > MAX_SINGLE_FILE_SIZE:
-                                        continue
-                                    arcname = os.path.join(dirname, os.path.relpath(file_full, file_path))
-                                    zf.write(file_full, arcname)
-                                except OSError:
-                                    pass
-                    else:
-                        try:
-                            if os.path.getsize(file_path) > MAX_SINGLE_FILE_SIZE:
-                                continue
-                            zf.write(file_path, os.path.basename(file_path))
-                        except OSError:
-                            pass
-            
-            zip_data = zip_buffer.getvalue()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/zip")
-            self.send_header("Content-Length", str(len(zip_data)))
-            self.send_header("Content-Disposition", 'attachment; filename="download.zip"')
-            self.end_headers()
-            self.wfile.write(zip_data)
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_delete(self):
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            paths = data.get("paths", [])
-            if not paths:
-                self.send_json(400, {"error": "Missing 'paths' parameter"})
-                return
-            deleted, failed = [], []
-            whitelist = load_whitelist()
-            for file_path in paths:
-                file_path = os.path.normpath(file_path)
-                # 检查白名单
-                if not is_in_whitelist(file_path):
-                    failed.append({"path": file_path, "error": "路径不在删除白名单中"})
-                    continue
-                allowed, reason = check_permission(file_path, "delete")
-                if not allowed:
-                    failed.append({"path": file_path, "error": reason})
-                    continue
-                if not os.path.exists(file_path):
-                    failed.append({"path": file_path, "error": "File not found"})
-                    continue
-                try:
-                    if os.path.isdir(file_path):
-                        shutil.rmtree(file_path)
-                    else:
-                        os.remove(file_path)
-                    deleted.append(file_path)
-                except Exception as e:
-                    failed.append({"path": file_path, "error": str(e)})
-            self.send_json(200, {"success": True, "deleted": deleted, "failed": failed, "message": f"已删除 {len(deleted)} 项" + (f"，{len(failed)} 项失败" if failed else "")})
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_whitelist(self):
-        """处理白名单管理请求"""
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            if length == 0:
-                # GET 请求 - 获取白名单
-                whitelist = load_whitelist()
-                self.send_json(200, {"whitelist": whitelist})
-                return
-            
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            action = data.get("action", "")
-            
-            if action == "add":
-                path = data.get("path", "")
-                if not path:
-                    self.send_json(400, {"error": "Missing 'path' parameter"})
-                    return
-                whitelist = load_whitelist()
-                normalized = os.path.normpath(path)
-                if normalized not in [os.path.normpath(p) for p in whitelist]:
-                    whitelist.append(normalized)
-                    if save_whitelist(whitelist):
-                        self.send_json(200, {"success": True, "whitelist": whitelist})
-                    else:
-                        self.send_json(500, {"error": "保存白名单失败"})
-                else:
-                    self.send_json(200, {"success": True, "whitelist": whitelist, "message": "路径已存在于白名单中"})
-            
-            elif action == "remove":
-                path = data.get("path", "")
-                if not path:
-                    self.send_json(400, {"error": "Missing 'path' parameter"})
-                    return
-                whitelist = load_whitelist()
-                normalized = os.path.normpath(path)
-                new_whitelist = [p for p in whitelist if os.path.normpath(p) != normalized]
-                if len(new_whitelist) < len(whitelist):
-                    if save_whitelist(new_whitelist):
-                        self.send_json(200, {"success": True, "whitelist": new_whitelist})
-                    else:
-                        self.send_json(500, {"error": "保存白名单失败"})
-                else:
-                    self.send_json(200, {"success": True, "whitelist": whitelist, "message": "路径不在白名单中"})
-            
-            elif action == "set":
-                whitelist = data.get("whitelist", [])
-                if not isinstance(whitelist, list):
-                    self.send_json(400, {"error": "Invalid whitelist format"})
-                    return
-                # 规范化所有路径
-                normalized_whitelist = [os.path.normpath(p) for p in whitelist if p]
-                if save_whitelist(normalized_whitelist):
-                    self.send_json(200, {"success": True, "whitelist": normalized_whitelist})
-                else:
-                    self.send_json(500, {"error": "保存白名单失败"})
-            
-            else:
-                # 默认返回当前白名单
-                whitelist = load_whitelist()
-                self.send_json(200, {"whitelist": whitelist})
-        
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_quickpaths(self):
-        """处理快捷路径配置请求"""
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            if length == 0:
-                # 获取快捷路径
-                paths = get_quick_paths()
-                self.send_json(200, {"quick_paths": paths})
-                return
-            
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            action = data.get("action", "")
-            
-            if action == "set":
-                paths = data.get("quick_paths", [])
-                if not isinstance(paths, list):
-                    self.send_json(400, {"error": "Invalid format"})
-                    return
-                if save_quick_paths(paths):
-                    self.send_json(200, {"success": True, "quick_paths": paths})
-                else:
-                    self.send_json(500, {"error": "保存失败"})
-            else:
-                paths = get_quick_paths()
-                self.send_json(200, {"quick_paths": paths})
-                
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_quickcmds(self):
-        """处理快捷命令配置请求"""
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            if length == 0:
-                # 获取快捷命令
-                cmds = get_quick_cmds()
-                self.send_json(200, {"quick_cmds": cmds})
-                return
-            
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            action = data.get("action", "")
-            
-            if action == "set":
-                cmds = data.get("quick_cmds", [])
-                if not isinstance(cmds, list):
-                    self.send_json(400, {"error": "Invalid format"})
-                    return
-                if save_quick_cmds(cmds):
-                    self.send_json(200, {"success": True, "quick_cmds": cmds})
-                else:
-                    self.send_json(500, {"error": "保存失败"})
-            else:
-                cmds = get_quick_cmds()
-                self.send_json(200, {"quick_cmds": cmds})
-                
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_save_file(self):
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            file_path = data.get("path", "")
-            file_content = data.get("content", "")
-            if not file_path:
-                self.send_json(400, {"error": "Missing 'path' parameter"})
-                return
-            file_path = os.path.normpath(file_path)
-            allowed, reason = check_permission(file_path, "write")
-            if not allowed:
-                self.send_json(403, {"error": reason})
-                return
-            if os.path.exists(file_path):
-                shutil.copy2(file_path, file_path + ".bak")
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(file_content)
-            self.send_json(200, {"success": True, "path": file_path, "size": len(file_content.encode("utf-8"))})
-        except PermissionError:
-            self.send_json(403, {"error": "Permission denied"})
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_create(self):
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            parent_path = data.get("parent", "")
-            name = os.path.basename(data.get("name", ""))
-            item_type = data.get("type", "file")
-            if not parent_path or not name:
-                self.send_json(400, {"error": "Missing 'parent' or 'name' parameter"})
-                return
-            full_path = os.path.normpath(os.path.join(parent_path, name))
-            allowed, reason = check_permission(full_path, "write")
-            if not allowed:
-                self.send_json(403, {"error": reason})
-                return
-            if os.path.exists(full_path):
-                self.send_json(409, {"error": "Already exists"})
-                return
-            if item_type == "directory":
-                os.makedirs(full_path, exist_ok=False)
-            else:
-                open(full_path, "w").close()
-            self.send_json(200, {"success": True, "path": full_path})
-        except PermissionError:
-            self.send_json(403, {"error": "Permission denied"})
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_chmod(self):
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            file_path = data.get("path", "")
-            mode = data.get("mode", "")
-            if not file_path or not mode:
-                self.send_json(400, {"error": "Missing 'path' or 'mode' parameter"})
-                return
-            file_path = os.path.normpath(file_path)
-            allowed, reason = check_permission(file_path, "write")
-            if not allowed:
-                self.send_json(403, {"error": reason})
-                return
-            mode_int = int(mode, 8) if isinstance(mode, str) else mode
-            os.chmod(file_path, mode_int)
-            self.send_json(200, {"success": True, "path": file_path, "mode": oct(mode_int)})
-        except PermissionError:
-            self.send_json(403, {"error": "Permission denied"})
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_upload(self):
-        try:
-            import cgi
-            content_type = self.headers.get("Content-Type", "")
-            if "multipart/form-data" not in content_type:
-                self.send_json(400, {"error": "Content-Type must be multipart/form-data"})
-                return
-            form = cgi.FieldStorage(fp=self.rfile, headers=self.headers, environ={"REQUEST_METHOD": "POST", "CONTENT_TYPE": content_type})
-            dest_dir = os.path.normpath(form.getvalue("path", ""))
-            if not dest_dir:
-                self.send_json(400, {"error": "Missing 'path' parameter"})
-                return
-            allowed, reason = check_permission(dest_dir, "write")
-            if not allowed:
-                self.send_json(403, {"error": reason})
-                return
-            file_item = form["file"]
-            if not file_item.filename:
-                self.send_json(400, {"error": "No file uploaded"})
-                return
-            filename = os.path.basename(file_item.filename)
-            dest_path = os.path.join(dest_dir, filename)
-            if os.path.exists(dest_path):
-                base, ext = os.path.splitext(filename)
-                counter = 1
-                while os.path.exists(dest_path):
-                    filename = f"{base}_{counter}{ext}"
-                    dest_path = os.path.join(dest_dir, filename)
-                    counter += 1
-            with open(dest_path, "wb") as f:
-                shutil.copyfileobj(file_item.file, f)
-            self.send_json(200, {"success": True, "path": dest_path, "filename": filename, "size": os.path.getsize(dest_path)})
-        except PermissionError:
-            self.send_json(403, {"error": "Permission denied"})
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_terminal(self):
-        """处理终端命令执行请求"""
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            command = data.get("command", "")
-            cwd = data.get("cwd", "/")
-            
-            if not command:
-                self.send_json(400, {"error": "Missing 'command' parameter"})
-                return
-            
-            # 安全检查：禁止某些危险命令
-            dangerous_patterns = [
-                r'\brm\s+-rf\s+/(?!\w)',  # rm -rf / 但允许 rm -rf /tmp
-                r'\bmkfs\b',
-                r'\bdd\s+if=.*of=/dev/',
-                r'\b:\(\)\{.*;\};\s*:\(\)',  # fork bomb
-                r'\bchmod\s+[-+]?[0-7]*\s+/',
-                r'\bchown\s+.*\s+/',
-                r'\bshutdown\b',
-                r'\breboot\b',
-                r'\binit\s+[06]',
-                r'\bhalt\b',
-                r'\bpoweroff\b',
-            ]
-            
-            for pattern in dangerous_patterns:
-                if re.search(pattern, command, re.IGNORECASE):
-                    self.send_json(403, {"error": f"命令被禁止执行（安全限制）"})
-                    return
-            
-            # 规范化工作目录
-            cwd = os.path.normpath(cwd)
-            if not os.path.isdir(cwd):
-                cwd = "/"
-            
-            # 执行命令，并在最后获取pwd
-            new_cwd = cwd
-            
-            try:
-                # 如果是cd命令，特殊处理
-                cmd_stripped = command.strip()
-                if cmd_stripped.startswith('cd ') or cmd_stripped == 'cd':
-                    # 解析cd目标
-                    parts = cmd_stripped.split(None, 1)
-                    target = parts[1] if len(parts) > 1 else ''
-                    
-                    if not target or target == '~':
-                        # cd 或 cd ~ -> 回到家目录
-                        new_cwd = os.path.expanduser('~')
-                    elif target == '-':
-                        # cd - -> 上一个目录（暂不支持，保持当前）
-                        new_cwd = cwd
-                    else:
-                        # 解析相对/绝对路径
-                        if target.startswith('/'):
-                            new_cwd = target
-                        elif target.startswith('~'):
-                            new_cwd = os.path.expanduser(target)
-                        else:
-                            new_cwd = os.path.join(cwd, target)
-                        
-                        # 规范化路径
-                        new_cwd = os.path.normpath(new_cwd)
-                    
-                    # 验证目录是否存在
-                    if os.path.isdir(new_cwd):
-                        output = ""
-                    else:
-                        output = f"cd: {target}: No such file or directory\n"
-                        new_cwd = cwd
-                else:
-                    # 执行普通命令
-                    result = subprocess.run(
-                        command,
-                        shell=True,
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                        cwd=cwd,
-                        env={**os.environ, "TERM": "xterm-256color", "LANG": "en_US.UTF-8"}
-                    )
-                    
-                    output = result.stdout
-                    if result.stderr:
-                        output += result.stderr
-                    
-                    # 如果命令中包含cd，尝试获取新目录
-                    if ' cd ' in command or command.startswith('cd '):
-                        try:
-                            pwd_result = subprocess.run(
-                                f"cd {cwd} && {command} && pwd",
-                                shell=True,
-                                capture_output=True,
-                                text=True,
-                                timeout=5,
-                                cwd=cwd
-                            )
-                            if pwd_result.returncode == 0:
-                                lines = pwd_result.stdout.strip().split('\n')
-                                if lines:
-                                    potential_cwd = lines[-1]
-                                    if os.path.isdir(potential_cwd):
-                                        new_cwd = potential_cwd
-                        except:
-                            pass
-                    
-                    self.send_json(200, {
-                        "success": True,
-                        "output": output,
-                        "exit_code": result.returncode if 'result' in dir() else 0,
-                        "cwd": new_cwd
-                    })
-                    return
-                
-                # cd命令成功
-                self.send_json(200, {
-                    "success": True,
-                    "output": output,
-                    "exit_code": 0 if not output else 1,
-                    "cwd": new_cwd
+            entries = []
+            for name in sorted(os.listdir(file_path)):
+                full = os.path.join(file_path, name)
+                entries.append({
+                    'name': name,
+                    'type': 'dir' if os.path.isdir(full) else 'file',
+                    'size': os.path.getsize(full) if os.path.isfile(full) else None,
+                    'permissions': get_file_permissions(full),
+                    'can_delete': is_in_whitelist(full),
                 })
-                
-            except subprocess.TimeoutExpired:
-                self.send_json(408, {"error": "命令执行超时（30秒限制）"})
-            except Exception as e:
-                self.send_json(500, {"error": f"命令执行失败: {str(e)}"})
-                
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-
-    def _handle_terminal_complete(self):
-        """处理Tab补全请求"""
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            data = json.loads(self.rfile.read(length).decode("utf-8"))
-            command = data.get("command", "")
-            cwd = data.get("cwd", "/")
-            cursor_pos = data.get("cursor_pos", 0)
-            
-            # 规范化工作目录
-            cwd = os.path.normpath(cwd)
-            if not os.path.isdir(cwd):
-                cwd = "/"
-            
-            # 获取光标前的内容
-            before_cursor = command[:cursor_pos]
-            
-            # 解析要补全的部分
-            completions = []
-            
-            # 检查是否在补全路径
-            parts = before_cursor.split()
-            if not parts:
-                # 补全命令
-                completions = self._complete_command("")
-            elif len(parts) == 1 and not before_cursor.endswith(' '):
-                # 补全命令
-                completions = self._complete_command(parts[0])
-            else:
-                # 补全路径或参数
-                last_part = parts[-1] if not before_cursor.endswith(' ') else ""
-                if last_part:
-                    completions = self._complete_path(last_part, cwd)
-            
-            # 找到共同前缀
-            common_prefix = ""
-            if completions:
-                common_prefix = completions[0]
-                for c in completions[1:]:
-                    while not c.startswith(common_prefix) and common_prefix:
-                        common_prefix = common_prefix[:-1]
-            
-            self.send_json(200, {
-                "success": True,
-                "completions": completions[:20],  # 最多返回20个
-                "common_prefix": common_prefix
+            dir_can_delete = is_in_whitelist(file_path)
+            return jsonify({
+                'type': 'directory',
+                'path': file_path,
+                'entries': entries,
+                'permissions': get_file_permissions(file_path),
+                'folder_permissions': folder_perms,
+                'can_delete': dir_can_delete
             })
-            
-        except Exception as e:
-            self.send_json(500, {"error": str(e)})
-    
-    def _complete_command(self, prefix):
-        """补全命令"""
+        except PermissionError:
+            return jsonify({'error': 'Permission denied'}), 403
+
+    # 文件
+    size = os.path.getsize(file_path)
+    if size > MAX_FILE_PREVIEW_SIZE:
+        limit_mb = MAX_FILE_PREVIEW_SIZE // (1024 * 1024)
+        return jsonify({'error': f'File too large ({size} bytes). Limit is {limit_mb} MB.'}), 413
+
+    try:
+        with open(file_path, 'rb') as f:
+            raw = f.read()
         try:
-            # 获取PATH中的可执行文件
-            paths = os.environ.get("PATH", "/usr/bin:/bin").split(":")
-            commands = set()
-            
-            for path in paths:
+            content = raw.decode('utf-8')
+            encoding = 'utf-8'
+        except UnicodeDecodeError:
+            try:
+                content = raw.decode('gbk')
+                encoding = 'gbk'
+            except UnicodeDecodeError:
+                return jsonify({'error': 'Binary file, cannot display as text'}), 415
+
+        return jsonify({
+            'type': 'file',
+            'path': file_path,
+            'size': size,
+            'encoding': encoding,
+            'content': content,
+            'permissions': get_file_permissions(file_path),
+            'folder_permissions': folder_perms
+        })
+    except PermissionError:
+        return jsonify({'error': 'Permission denied'}), 403
+
+
+@app.route('/api/file/save', methods=['POST'])
+def file_save():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        data = request.json
+        file_path = data.get('path', '')
+        content = data.get('content', '')
+
+        if not file_path:
+            return jsonify({'error': "Missing 'path' parameter"}), 400
+
+        file_path = os.path.normpath(file_path)
+        allowed, reason = check_permission(file_path, 'write')
+        if not allowed:
+            return jsonify({'error': reason}), 403
+
+        if os.path.exists(file_path):
+            shutil.copy2(file_path, file_path + '.bak')
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+        return jsonify({'success': True, 'path': file_path, 'size': len(content.encode('utf-8'))})
+    except PermissionError:
+        return jsonify({'error': 'Permission denied'}), 403
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/file/create', methods=['POST'])
+def file_create():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        data = request.json
+        path = data.get('path', '')
+        file_type = data.get('type', 'file')
+
+        if not path:
+            return jsonify({'error': "Missing 'path' parameter"}), 400
+
+        path = os.path.normpath(path)
+        parent = os.path.dirname(path)
+
+        if not os.path.exists(parent):
+            return jsonify({'error': 'Parent directory does not exist'}), 400
+
+        allowed, reason = check_permission(parent, 'write')
+        if not allowed:
+            return jsonify({'error': reason}), 403
+
+        if os.path.exists(path):
+            return jsonify({'error': 'File or directory already exists'}), 400
+
+        if file_type == 'directory':
+            os.makedirs(path)
+        else:
+            with open(path, 'w') as f:
+                pass
+
+        return jsonify({'success': True, 'path': path})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/file/delete', methods=['POST'])
+def file_delete():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        data = request.json
+        paths = data.get('paths', [])
+
+        if not paths:
+            return jsonify({'error': "Missing 'paths' parameter"}), 400
+
+        deleted = []
+        failed = []
+
+        for path in paths:
+            path = os.path.normpath(path)
+            if not os.path.exists(path):
+                failed.append({'path': path, 'error': 'File not found'})
+                continue
+            if not is_in_whitelist(path):
+                failed.append({'path': path, 'error': 'Not in whitelist'})
+                continue
+
+            try:
                 if os.path.isdir(path):
-                    try:
-                        for f in os.listdir(path):
-                            full_path = os.path.join(path, f)
-                            if os.path.isfile(full_path) and os.access(full_path, os.X_OK):
-                                if f.startswith(prefix):
-                                    commands.add(f)
-                    except:
-                        pass
-            
-            # 添加常用内置命令
-            builtin = ['cd', 'ls', 'cat', 'grep', 'find', 'cp', 'mv', 'rm', 'mkdir', 
-                      'rmdir', 'touch', 'echo', 'pwd', 'clear', 'exit', 'help',
-                      'head', 'tail', 'less', 'more', 'wc', 'sort', 'uniq',
-                      'chmod', 'chown', 'ln', 'df', 'du', 'free', 'top', 'ps',
-                      'kill', 'jobs', 'bg', 'fg', 'export', 'source', 'alias',
-                      'tar', 'gzip', 'gunzip', 'zip', 'unzip', 'curl', 'wget',
-                      'systemctl', 'journalctl', 'docker', 'kubectl', 'git']
-            
-            for cmd in builtin:
-                if cmd.startswith(prefix):
-                    commands.add(cmd)
-            
-            return sorted(list(commands))[:20]
-        except:
-            return []
-    
-    def _complete_path(self, partial_path, cwd):
-        """补全路径"""
-        try:
-            # 处理相对路径和绝对路径
-            if partial_path.startswith('/'):
-                base_dir = os.path.dirname(partial_path)
-                prefix = os.path.basename(partial_path)
-            elif partial_path.startswith('~'):
-                home = os.path.expanduser('~')
-                rest = partial_path[1:]
-                if rest.startswith('/'):
-                    base_dir = os.path.dirname(home + rest)
-                    prefix = os.path.basename(home + rest)
+                    shutil.rmtree(path)
                 else:
-                    base_dir = home
-                    prefix = rest
+                    os.remove(path)
+                deleted.append(path)
+            except Exception as e:
+                failed.append({'path': path, 'error': str(e)})
+
+        msg = f'已删除 {len(deleted)} 项'
+        if failed:
+            msg += f'，{len(failed)} 项失败'
+
+        return jsonify({'success': True, 'deleted': deleted, 'failed': failed, 'message': msg})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/file/chmod', methods=['POST'])
+def file_chmod():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        data = request.json
+        path = data.get('path', '')
+        mode = data.get('mode', '755')
+
+        if not path:
+            return jsonify({'error': "Missing 'path' parameter"}), 400
+
+        path = os.path.normpath(path)
+        if not os.path.exists(path):
+            return jsonify({'error': 'File not found'}), 404
+
+        allowed, reason = check_permission(path, 'write')
+        if not allowed:
+            return jsonify({'error': reason}), 403
+
+        mode_int = int(mode, 8)
+        os.chmod(path, mode_int)
+
+        return jsonify({'success': True, 'path': path, 'mode': mode})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/file/upload', methods=['POST'])
+def file_upload():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        path = request.form.get('path')
+        if not path:
+            return jsonify({'error': 'Missing path'}), 400
+
+        file = request.files.get('file')
+        if not file:
+            return jsonify({'error': 'No file uploaded'}), 400
+
+        path = os.path.normpath(path)
+        parent = os.path.dirname(path)
+
+        allowed, reason = check_permission(parent, 'write')
+        if not allowed:
+            return jsonify({'error': reason}), 403
+
+        # 处理文件名冲突
+        final_path = path
+        counter = 1
+        while os.path.exists(final_path):
+            base, ext = os.path.splitext(path)
+            final_path = f'{base}_{counter}{ext}'
+            counter += 1
+
+        file.save(final_path)
+
+        return jsonify({'success': True, 'path': final_path})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/file/download', methods=['GET'])
+def file_download():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    path = request.args.get('path', '')
+    if not path:
+        return jsonify({'error': "Missing 'path' parameter"}), 400
+
+    path = os.path.normpath(path)
+    if not os.path.exists(path):
+        return jsonify({'error': 'File not found'}), 404
+
+    allowed, reason = check_permission(path, 'read')
+    if not allowed:
+        return jsonify({'error': reason}), 403
+
+    if os.path.isdir(path):
+        import urllib.parse
+        dirname = os.path.basename(path) or 'root'
+
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    file_full = os.path.join(root, file)
+                    arcname = os.path.relpath(file_full, os.path.dirname(path))
+                    zf.write(file_full, arcname)
+
+        return send_file(tmp_path, as_attachment=True, download_name=f"{dirname}.zip")
+
+    else:
+        import urllib.parse
+        filename = os.path.basename(path)
+        return send_from_directory(os.path.dirname(path), filename, as_attachment=True)
+
+
+@app.route('/api/file/download/batch', methods=['POST'])
+def batch_download():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        data = request.json
+        paths = data.get('paths', [])
+
+        if not paths:
+            return jsonify({'error': "Missing 'paths' parameter"}), 400
+
+        for p in paths:
+            allowed, reason = check_permission(p, 'read')
+            if not allowed:
+                return jsonify({'error': f'Access denied: {p}'}), 403
+
+        import tempfile
+        import urllib.parse
+
+        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        with zipfile.ZipFile(tmp_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for path in paths:
+                path = os.path.normpath(path)
+                if os.path.isdir(path):
+                    for root, dirs, files in os.walk(path):
+                        for file in files:
+                            file_full = os.path.join(root, file)
+                            arcname = os.path.relpath(file_full, os.path.dirname(path))
+                            zf.write(file_full, arcname)
+                else:
+                    zf.write(path, os.path.basename(path))
+
+        return send_file(tmp_path, as_attachment=True, download_name="download.zip")
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/whitelist', methods=['GET', 'POST', 'DELETE', 'PUT'])
+def whitelist():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    if request.method == 'GET':
+        whitelist = load_whitelist()
+        return jsonify({'whitelist': format_whitelist_with_types(whitelist)})
+
+    try:
+        data = request.json
+        action = data.get('action', '')
+
+        if action == 'add':
+            path = data.get('path', '')
+            if not path:
+                return jsonify({'error': "Missing 'path' parameter"}), 400
+
+            normalized = os.path.normpath(path)
+            if not os.path.exists(normalized):
+                return jsonify({'error': f'路径不存在: {normalized}'}), 400
+
+            whitelist = load_whitelist()
+            if normalized not in [os.path.normpath(p) for p in whitelist]:
+                whitelist.append(normalized)
+                if save_whitelist(whitelist):
+                    path_type = '文件' if os.path.isfile(normalized) else '目录'
+                    return jsonify({'success': True, 'whitelist': format_whitelist_with_types(whitelist), 'type': path_type})
+                else:
+                    return jsonify({'error': '保存白名单失败'}), 500
             else:
-                base_dir = os.path.dirname(os.path.join(cwd, partial_path))
-                prefix = os.path.basename(partial_path)
-            
-            if not base_dir:
-                base_dir = cwd if not partial_path.startswith('/') else '/'
-            
-            if not os.path.isdir(base_dir):
-                return []
-            
-            completions = []
-            for f in os.listdir(base_dir):
-                if f.startswith(prefix):
-                    full_path = os.path.join(base_dir, f)
-                    # 添加/标记目录
-                    if os.path.isdir(full_path):
-                        completions.append(f + '/')
-                    else:
-                        completions.append(f)
-            
-            return sorted(completions)[:20]
-        except:
-            return []
+                return jsonify({'success': True, 'whitelist': format_whitelist_with_types(whitelist), 'message': '路径已存在于白名单中'})
+
+        elif action == 'remove':
+            path = data.get('path', '')
+            if not path:
+                return jsonify({'error': "Missing 'path' parameter"}), 400
+
+            whitelist = load_whitelist()
+            normalized = os.path.normpath(path)
+            new_whitelist = [p for p in whitelist if os.path.normpath(p) != normalized]
+
+            if len(new_whitelist) < len(whitelist):
+                if save_whitelist(new_whitelist):
+                    return jsonify({'success': True, 'whitelist': format_whitelist_with_types(new_whitelist)})
+                else:
+                    return jsonify({'error': '保存白名单失败'}), 500
+            else:
+                return jsonify({'error': '路径不在白名单中', 'whitelist': format_whitelist_with_types(whitelist)}), 400
+
+        elif action == 'set':
+            whitelist = data.get('whitelist', [])
+            if not isinstance(whitelist, list):
+                return jsonify({'error': 'Invalid whitelist format'}), 400
+
+            normalized_whitelist = [os.path.normpath(p) for p in whitelist if p]
+            if save_whitelist(normalized_whitelist):
+                return jsonify({'success': True, 'whitelist': format_whitelist_with_types(normalized_whitelist)})
+            else:
+                return jsonify({'error': '保存白名单失败'}), 500
+
+        else:
+            whitelist = load_whitelist()
+            return jsonify({'whitelist': format_whitelist_with_types(whitelist)})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-if __name__ == "__main__":
-    server = http.server.HTTPServer((SERVER_HOST, SERVER_PORT), FileViewerHandler)
-    print(f"File viewer backend listening on {SERVER_HOST}:{SERVER_PORT}")
-    server.serve_forever()
+@app.route('/api/quickpaths', methods=['GET'])
+def quickpaths_get():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    return jsonify({'quick_paths': get_quick_paths()})
+
+
+@app.route('/api/quickpaths', methods=['POST'])
+def quickpaths_save():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        data = request.json
+        paths = data.get('quick_paths', [])
+        if not isinstance(paths, list):
+            return jsonify({'error': 'Invalid format'}), 400
+
+        if save_quick_paths(paths):
+            return jsonify({'success': True, 'quick_paths': paths})
+        else:
+            return jsonify({'error': '保存失败'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/changepwd', methods=['POST'])
+def changepwd():
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        data = request.json
+        old_password = data.get('old_password', '')
+        new_password = data.get('new_password', '')
+
+        success, message = change_password(old_password, new_password)
+        if success:
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'error': message}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# === 启动服务器 ===
+if __name__ == '__main__':
+    print(f"Starting File Viewer Server on http://{SERVER_HOST}:{SERVER_PORT}")
+    socketio.run(app, host=SERVER_HOST, port=SERVER_PORT, debug=False, allow_unsafe_werkzeug=True)
