@@ -1,97 +1,23 @@
-# File Viewer 主配置文件
-# 所有配置统一管理，配置文件路径: /etc/file-viewer/config.yaml
-
-# ============================================================
-# 服务器配置
-# ============================================================
 server:
-  host: "127.0.0.1"
+  host: 127.0.0.1
   port: 9001
-  session_timeout: 3600  # 会话超时时间（秒）
-
-# ============================================================
-# 数据存储配置
-# ============================================================
+  session_timeout: 3600
 storage:
-  # 配置文件目录（相对路径基于此目录）
-  config_dir: "/etc/file-viewer"
-  # 密码文件路径
-  password_file: "/etc/file-viewer/passwd"
-  # 会话存储（可选：redis/mysql等，默认内存）
-  # session_store: "memory"
-
-# ============================================================
-# 安全配置
-# ============================================================
+  data_dir: /etc/file-viewer
 security:
-  # 删除白名单 - 只允许删除这些路径下的文件
   delete_whitelist:
-    - "/tmp"
-    - "/var/tmp"
-
-# ============================================================
-# 界面配置
-# ============================================================
-ui:
-  # 快捷路径 - 文件浏览页面的快捷访问路径
-  quick_paths:
-    - { path: "/", name: "/ 根目录" }
-    - { path: "/etc", name: "/etc" }
-    - { path: "/var/log", name: "/var/log" }
-    - { path: "/var/www/html", name: "/var/www/html" }
-    - { path: "/etc/nginx/nginx.conf", name: "/etc/nginx/nginx.conf" }
-    - { path: "/proc/cpuinfo", name: "/proc/cpuinfo" }
-    - { path: "/proc/meminfo", name: "/proc/meminfo" }
-    - { path: "/etc/passwd", name: "/etc/passwd" }
-    - { path: "/etc/hosts", name: "/etc/hosts" }
-
-  # 快捷命令 - 终端页面的快捷命令按钮
-  quick_commands:
-    - { cmd: "ls -la --color=auto", name: "ls -la" }
-    - { cmd: "pwd", name: "pwd" }
-    - { cmd: "df -h", name: "df -h" }
-    - { cmd: "free -h", name: "free -h" }
-    - { cmd: "top -bn1 | head -15", name: "top" }
-    - { cmd: "ps aux --sort=-%mem | head -10", name: "内存" }
-    - { cmd: "ss -tlnp", name: "端口" }
-    - { cmd: "journalctl -u nginx -n 20 --no-pager", name: "nginx日志" }
-    - { cmd: "docker ps -a", name: "docker" }
-    - { cmd: "htop 2>/dev/null || top -bn1 | head -20", name: "系统" }
-
-# ============================================================
-# 权限配置
-# ============================================================
+  - /tmp
+  - /var/tmp
 permissions:
-  # 文件夹权限配置（针对不同目录配置读写权限）
-  folder_permissions:
-    # 示例配置（取消注释启用）：
-    # "/var/www/html":
-    #   read: true
-    #   write: true
-    # "/etc/nginx":
-    #   read: true
-    #   write: true
-    # "/etc":
-    #   read: true
-    #   write: false
-
-  # 默认权限（未匹配到具体配置的目录使用此配置）
+  folder_permissions: null
   default_permissions:
     read: true
     write: true
-
-# ============================================================
-# 下载限制配置
-# ============================================================
 download_limits:
-  max_single_file_size: 104857600    # 单文件最大 100MB
-  max_total_download_size: 209715200 # 批量下载总大小最大 200MB
-  max_files_in_zip: 500              # ZIP 中最多文件数
-  max_dir_depth: 20                  # 目录最大递归深度
-  max_file_preview_size: 2097152     # 文件预览最大 2MB
-
-# ============================================================
-# 日志配置
-# ============================================================
+  max_single_file_size: 104857600
+  max_total_download_size: 209715200
+  max_files_in_zip: 500
+  max_dir_depth: 20
+  max_file_preview_size: 2097152
 logging:
-  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  level: INFO
