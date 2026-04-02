@@ -4,6 +4,7 @@ server:
   session_timeout: 3600
 storage:
   data_dir: /etc/file-viewer
+  user_config_file: /etc/file-viewer/user_config.yaml
 security:
   delete_whitelist:
   - /tmp

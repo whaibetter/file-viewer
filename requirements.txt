@@ -1,0 +1,7 @@
+flask>=2.0.0
+flask-socketio>=5.0.0
+python-socketio>=5.0.0
+eventlet>=0.30.0
+aiohttp
+pyyaml
+python-dotenv

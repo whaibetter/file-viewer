@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -831,6 +832,7 @@
     <div class="settings-tabs">
         <button class="settings-tab active" onclick="switchSettingsTab('whitelist')">删除白名单</button>
         <button class="settings-tab" onclick="switchSettingsTab('quickpaths')">快捷路径</button>
+        <button class="settings-tab" onclick="switchSettingsTab('sysconfig')">系统配置</button>
         <button class="settings-tab" onclick="switchSettingsTab('password')">密码修改</button>
     </div>
     
@@ -881,6 +883,103 @@
             <div style="margin-top:12px;">
                 <button class="btn" onclick="resetQuickPathsToDefault()" style="font-size:0.8em;">恢复默认快捷路径</button>
             </div>
+        </div>
+        
+        <!-- 系统配置标签 -->
+        <div id="settingsTabSysconfig" class="settings-tab-body">
+            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">自定义系统运行参数（修改后点击保存生效）</p>
+            
+            <!-- 会话配置 -->
+            <div style="margin-bottom:20px;">
+                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">🔐 会话配置</div>
+                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <label style="color:#c9d1d9;font-size:0.9em;">会话超时时间（秒）</label>
+                        <input type="number" id="configSessionTimeout" class="path-input" style="width:120px;text-align:right;" min="60" max="86400" value="3600">
+                    </div>
+                    <div style="color:#484f58;font-size:0.75em;">范围: 60-86400 秒（1分钟 - 24小时），修改后新登录生效</div>
+                </div>
+            </div>
+            
+            <!-- 默认权限配置 -->
+            <div style="margin-bottom:20px;">
+                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">🔒 默认权限配置</div>
+                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
+                    <div style="display:flex;gap:24px;">
+                        <label style="display:flex;align-items:center;gap:8px;color:#c9d1d9;font-size:0.9em;cursor:pointer;">
+                            <input type="checkbox" id="configDefaultRead" checked> 允许读取
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;color:#c9d1d9;font-size:0.9em;cursor:pointer;">
+                            <input type="checkbox" id="configDefaultWrite" checked> 允许写入
+                        </label>
+                    </div>
+                    <div style="color:#484f58;font-size:0.75em;margin-top:8px;">未单独配置的目录将使用此默认权限</div>
+                </div>
+            </div>
+            
+            <!-- 下载限制配置 -->
+            <div style="margin-bottom:20px;">
+                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">📦 下载限制配置</div>
+                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <label style="color:#c9d1d9;font-size:0.9em;">单文件最大大小（MB）</label>
+                        <input type="number" id="configMaxSingleFileSize" class="path-input" style="width:120px;text-align:right;" min="1" max="1024" value="100">
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <label style="color:#c9d1d9;font-size:0.9em;">批量下载最大大小（MB）</label>
+                        <input type="number" id="configMaxTotalDownloadSize" class="path-input" style="width:120px;text-align:right;" min="1" max="2048" value="200">
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <label style="color:#c9d1d9;font-size:0.9em;">ZIP 最大文件数</label>
+                        <input type="number" id="configMaxFilesInZip" class="path-input" style="width:120px;text-align:right;" min="1" max="10000" value="500">
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <label style="color:#c9d1d9;font-size:0.9em;">目录最大深度</label>
+                        <input type="number" id="configMaxDirDepth" class="path-input" style="width:120px;text-align:right;" min="1" max="100" value="20">
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <label style="color:#c9d1d9;font-size:0.9em;">文件预览最大大小（MB）</label>
+                        <input type="number" id="configMaxFilePreviewSize" class="path-input" style="width:120px;text-align:right;" min="1" max="50" value="2">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 配置文件直接编辑 -->
+            <div style="margin-bottom:20px;">
+                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">📝 配置文件编辑</div>
+                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <span style="color:#8b949e;font-size:0.8em;">直接编辑 user_config.yaml</span>
+                        <button class="btn" style="font-size:0.75em;padding:4px 10px;" onclick="loadRawConfig()">加载</button>
+                    </div>
+                    <textarea id="configRawEditor" style="width:100%;height:200px;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-family:monospace;font-size:0.85em;padding:10px;resize:vertical;box-sizing:border-box;" placeholder="# 点击"加载"获取当前配置
+# 示例:
+# session_timeout: 7200
+# default_permissions:
+#   read: true
+#   write: true
+# download_limits:
+#   max_single_file_size: 104857600
+#   max_total_download_size: 209715200
+#   max_files_in_zip: 500
+#   max_dir_depth: 20
+#   max_file_preview_size: 2097152"></textarea>
+                    <div style="margin-top:8px;display:flex;gap:8px;">
+                        <button class="btn primary" style="font-size:0.8em;" onclick="saveRawConfig()">保存配置文件</button>
+                        <button class="btn" style="font-size:0.8em;" onclick="formatRawConfig()">格式化</button>
+                    </div>
+                </div>
+                <div style="color:#484f58;font-size:0.75em;margin-top:8px;">⚠️ 直接编辑配置文件需要 YAML 格式正确，保存后立即生效</div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn primary" onclick="saveUserConfig()">保存配置</button>
+                <button class="btn" onclick="resetUserConfig()">恢复默认</button>
+                <button class="btn" onclick="loadUserConfig()">刷新</button>
+            </div>
+            
+            <div id="sysConfigMessage" style="display:none;margin-top:12px;padding:10px;border-radius:6px;font-size:0.85em;text-align:center;"></div>
         </div>
         
 
@@ -998,8 +1097,12 @@ function switchSettingsTab(tab) {
         document.querySelector('.settings-tab:nth-child(2)').classList.add('active');
         document.getElementById('settingsTabQuickpaths').classList.add('active');
         renderQuickPathsSettings();
-    } else if (tab === 'password') {
+    } else if (tab === 'sysconfig') {
         document.querySelector('.settings-tab:nth-child(3)').classList.add('active');
+        document.getElementById('settingsTabSysconfig').classList.add('active');
+        loadUserConfig();
+    } else if (tab === 'password') {
+        document.querySelector('.settings-tab:nth-child(4)').classList.add('active');
         document.getElementById('settingsTabPassword').classList.add('active');
         // 清空密码表单和错误提示
         document.getElementById('oldPassword').value = '';
@@ -1007,6 +1110,258 @@ function switchSettingsTab(tab) {
         document.getElementById('confirmPassword').value = '';
         document.getElementById('changePwdError').style.display = 'none';
         document.getElementById('changePwdSuccess').style.display = 'none';
+    }
+}
+
+// ── 用户配置管理 ──────────────────────────────────────
+let userConfigCache = null;
+
+async function loadUserConfig() {
+    try {
+        // 并行加载表单配置和原始配置文件
+        const [configResp, rawResp] = await Promise.all([
+            fetch('/api/userconfig', { method: 'GET' }),
+            fetch('/api/userconfig/raw', { method: 'GET' })
+        ]);
+        
+        const configData = await configResp.json();
+        const rawData = await rawResp.json();
+        
+        if (configData.config) {
+            userConfigCache = configData.config;
+            // 填充表单
+            document.getElementById('configSessionTimeout').value = configData.config.session_timeout || 3600;
+            document.getElementById('configDefaultRead').checked = configData.config.default_permissions?.read !== false;
+            document.getElementById('configDefaultWrite').checked = configData.config.default_permissions?.write !== false;
+            document.getElementById('configMaxSingleFileSize').value = Math.round((configData.config.download_limits?.max_single_file_size || 104857600) / 1048576);
+            document.getElementById('configMaxTotalDownloadSize').value = Math.round((configData.config.download_limits?.max_total_download_size || 209715200) / 1048576);
+            document.getElementById('configMaxFilesInZip').value = configData.config.download_limits?.max_files_in_zip || 500;
+            document.getElementById('configMaxDirDepth').value = configData.config.download_limits?.max_dir_depth || 20;
+            document.getElementById('configMaxFilePreviewSize').value = Math.round((configData.config.download_limits?.max_file_preview_size || 2097152) / 1048576);
+        }
+        
+        // 加载原始配置文件到编辑器
+        if (rawData.content !== undefined) {
+            document.getElementById('configRawEditor').value = rawData.content;
+        }
+    } catch (e) {
+        console.error('Failed to load user config:', e);
+    }
+}
+
+async function saveUserConfig() {
+    const config = {
+        session_timeout: parseInt(document.getElementById('configSessionTimeout').value) || 3600,
+        default_permissions: {
+            read: document.getElementById('configDefaultRead').checked,
+            write: document.getElementById('configDefaultWrite').checked
+        },
+        download_limits: {
+            max_single_file_size: (parseInt(document.getElementById('configMaxSingleFileSize').value) || 100) * 1048576,
+            max_total_download_size: (parseInt(document.getElementById('configMaxTotalDownloadSize').value) || 200) * 1048576,
+            max_files_in_zip: parseInt(document.getElementById('configMaxFilesInZip').value) || 500,
+            max_dir_depth: parseInt(document.getElementById('configMaxDirDepth').value) || 20,
+            max_file_preview_size: (parseInt(document.getElementById('configMaxFilePreviewSize').value) || 2) * 1048576
+        }
+    };
+    
+    // 显示确认弹窗
+    const changes = [];
+    if (userConfigCache?.session_timeout !== config.session_timeout) {
+        changes.push(`会话超时: ${config.session_timeout} 秒`);
+    }
+    if (JSON.stringify(userConfigCache?.default_permissions) !== JSON.stringify(config.default_permissions)) {
+        changes.push(`默认权限: 读取=${config.default_permissions.read}, 写入=${config.default_permissions.write}`);
+    }
+    if (userConfigCache?.download_limits?.max_single_file_size !== config.download_limits.max_single_file_size) {
+        changes.push(`单文件限制: ${config.download_limits.max_single_file_size / 1048576} MB`);
+    }
+    if (userConfigCache?.download_limits?.max_total_download_size !== config.download_limits.max_total_download_size) {
+        changes.push(`批量下载限制: ${config.download_limits.max_total_download_size / 1048576} MB`);
+    }
+    
+    if (!confirm(`确认保存以下配置修改？\n\n${changes.length > 0 ? changes.join('\n') : '无变更'}\n\n点击确定保存配置。`)) {
+        return;
+    }
+    
+    const msgEl = document.getElementById('sysConfigMessage');
+    msgEl.style.display = 'block';
+    msgEl.style.background = 'rgba(88,166,255,0.1)';
+    msgEl.style.border = '1px solid rgba(88,166,255,0.3)';
+    msgEl.style.color = '#58a6ff';
+    msgEl.textContent = '正在保存...';
+    
+    try {
+        const resp = await fetch('/api/userconfig', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config })
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            userConfigCache = data.config;
+            msgEl.style.background = 'rgba(63,185,80,0.1)';
+            msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
+            msgEl.style.color = '#3fb950';
+            msgEl.textContent = '配置已保存并生效';
+            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+        } else {
+            msgEl.style.background = 'rgba(248,81,73,0.1)';
+            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+            msgEl.style.color = '#f85149';
+            msgEl.textContent = data.error || '保存失败';
+        }
+    } catch (e) {
+        msgEl.style.background = 'rgba(248,81,73,0.1)';
+        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+        msgEl.style.color = '#f85149';
+        msgEl.textContent = '保存失败: ' + e.message;
+    }
+}
+
+async function resetUserConfig() {
+    if (!confirm('确认恢复默认配置？\n\n这将重置所有系统配置为默认值。')) {
+        return;
+    }
+    
+    const msgEl = document.getElementById('sysConfigMessage');
+    msgEl.style.display = 'block';
+    msgEl.style.background = 'rgba(88,166,255,0.1)';
+    msgEl.style.border = '1px solid rgba(88,166,255,0.3)';
+    msgEl.style.color = '#58a6ff';
+    msgEl.textContent = '正在重置...';
+    
+    try {
+        const resp = await fetch('/api/userconfig/reset', { method: 'POST' });
+        const data = await resp.json();
+        
+        if (data.success) {
+            userConfigCache = {};
+            document.getElementById('configSessionTimeout').value = 3600;
+            document.getElementById('configDefaultRead').checked = true;
+            document.getElementById('configDefaultWrite').checked = true;
+            document.getElementById('configMaxSingleFileSize').value = 100;
+            document.getElementById('configMaxTotalDownloadSize').value = 200;
+            document.getElementById('configMaxFilesInZip').value = 500;
+            document.getElementById('configMaxDirDepth').value = 20;
+            document.getElementById('configMaxFilePreviewSize').value = 2;
+            
+            // 同时清空编辑器
+            document.getElementById('configRawEditor').value = '';
+            
+            msgEl.style.background = 'rgba(63,185,80,0.1)';
+            msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
+            msgEl.style.color = '#3fb950';
+            msgEl.textContent = '配置已重置为默认值';
+            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+        } else {
+            msgEl.style.background = 'rgba(248,81,73,0.1)';
+            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+            msgEl.style.color = '#f85149';
+            msgEl.textContent = data.error || '重置失败';
+        }
+    } catch (e) {
+        msgEl.style.background = 'rgba(248,81,73,0.1)';
+        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+        msgEl.style.color = '#f85149';
+        msgEl.textContent = '重置失败: ' + e.message;
+    }
+}
+
+// ── 原始配置文件编辑 ──────────────────────────────────
+async function loadRawConfig() {
+    const msgEl = document.getElementById('sysConfigMessage');
+    try {
+        const resp = await fetch('/api/userconfig/raw', { method: 'GET' });
+        const data = await resp.json();
+        if (data.content !== undefined) {
+            document.getElementById('configRawEditor').value = data.content;
+            msgEl.style.display = 'block';
+            msgEl.style.background = 'rgba(63,185,80,0.1)';
+            msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
+            msgEl.style.color = '#3fb950';
+            msgEl.textContent = '配置文件已加载';
+            setTimeout(() => { msgEl.style.display = 'none'; }, 2000);
+        } else {
+            msgEl.style.display = 'block';
+            msgEl.style.background = 'rgba(248,81,73,0.1)';
+            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+            msgEl.style.color = '#f85149';
+            msgEl.textContent = data.error || '加载失败';
+        }
+    } catch (e) {
+        msgEl.style.display = 'block';
+        msgEl.style.background = 'rgba(248,81,73,0.1)';
+        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+        msgEl.style.color = '#f85149';
+        msgEl.textContent = '加载失败: ' + e.message;
+    }
+}
+
+async function saveRawConfig() {
+    const content = document.getElementById('configRawEditor').value;
+    
+    if (!confirm('确认保存配置文件？\n\n配置将立即生效，请确保 YAML 格式正确。')) {
+        return;
+    }
+    
+    const msgEl = document.getElementById('sysConfigMessage');
+    msgEl.style.display = 'block';
+    msgEl.style.background = 'rgba(88,166,255,0.1)';
+    msgEl.style.border = '1px solid rgba(88,166,255,0.3)';
+    msgEl.style.color = '#58a6ff';
+    msgEl.textContent = '正在保存...';
+    
+    try {
+        const resp = await fetch('/api/userconfig/raw', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            msgEl.style.background = 'rgba(63,185,80,0.1)';
+            msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
+            msgEl.style.color = '#3fb950';
+            msgEl.textContent = '配置文件已保存并生效';
+            
+            // 同步更新表单
+            await loadUserConfig();
+            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+        } else {
+            msgEl.style.background = 'rgba(248,81,73,0.1)';
+            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+            msgEl.style.color = '#f85149';
+            msgEl.textContent = data.error || '保存失败';
+        }
+    } catch (e) {
+        msgEl.style.background = 'rgba(248,81,73,0.1)';
+        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+        msgEl.style.color = '#f85149';
+        msgEl.textContent = '保存失败: ' + e.message;
+    }
+}
+
+function formatRawConfig() {
+    const editor = document.getElementById('configRawEditor');
+    const content = editor.value.trim();
+    
+    if (!content) {
+        return;
+    }
+    
+    try {
+        const parsed = jsyaml.load(content);
+        editor.value = jsyaml.dump(parsed, { indent: 2, lineWidth: -1 });
+    } catch (e) {
+        // 如果 jsyaml 未加载，使用简单格式化
+        document.getElementById('sysConfigMessage').style.display = 'block';
+        document.getElementById('sysConfigMessage').style.background = 'rgba(248,81,73,0.1)';
+        document.getElementById('sysConfigMessage').style.border = '1px solid rgba(248,81,73,0.3)';
+        document.getElementById('sysConfigMessage').style.color = '#f85149';
+        document.getElementById('sysConfigMessage').textContent = 'YAML 格式错误: ' + e.message;
     }
 }
 

@@ -30,6 +30,8 @@ PROJECT_CONFIG_FILE = PROJECT_DIR / "config.yaml"
 # 全局配置对象
 _config = None
 _config_file_path = None
+_user_config = None
+USER_CONFIG_FILE = None  # 将在加载主配置后初始化
 
 
 def load_config() -> dict:
@@ -74,8 +76,55 @@ def get_config() -> dict:
     return _config
 
 
+# 加载主配置
+load_config()
+
+# === 初始化用户配置文件路径 ===
+_storage_cfg = _config.get("storage", {})
+_user_config_path = _storage_cfg.get("user_config_file", "/etc/file-viewer/user_config.yaml")
+USER_CONFIG_FILE = Path(_user_config_path)
+
+
+# === 用户配置管理 ===
+def load_user_config() -> dict:
+    """加载用户配置文件"""
+    global _user_config
+    if USER_CONFIG_FILE.exists():
+        try:
+            with USER_CONFIG_FILE.open("r", encoding="utf-8") as f:
+                _user_config = yaml.safe_load(f) or {}
+                return _user_config
+        except Exception as e:
+            print(f"Warning: Failed to load user config: {e}")
+    _user_config = {}
+    return _user_config
+
+
+def save_user_config(config: dict) -> bool:
+    """保存用户配置文件"""
+    global _user_config
+    try:
+        USER_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with USER_CONFIG_FILE.open("w", encoding="utf-8") as f:
+            yaml.dump(config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        _user_config = config
+        return True
+    except Exception as e:
+        print(f"Failed to save user config: {e}")
+        return False
+
+
+def get_user_config() -> dict:
+    """获取用户配置"""
+    global _user_config
+    if _user_config is None:
+        load_user_config()
+    return _user_config
+
+
 # 加载配置
 load_config()
+load_user_config()
 
 # === 从配置文件读取设置 ===
 _server_cfg = _config.get("server", {})
@@ -88,7 +137,6 @@ _download_cfg = _config.get("download_limits", {})
 # 服务器配置
 SERVER_HOST = _server_cfg.get("host", "127.0.0.1")
 SERVER_PORT = _server_cfg.get("port", 9001)
-SESSION_TIMEOUT = _server_cfg.get("session_timeout", 3600)
 
 # === 数据存储目录配置 ===
 _data_dir_config = _storage_cfg.get("data_dir", "/etc/file-viewer")
@@ -100,16 +148,47 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 PASSWORD_FILE = DATA_DIR / "passwd"
 QUICK_PATHS_FILE = DATA_DIR / "quick_paths.json"
 
-# 文件夹权限配置
-FOLDER_PERMISSIONS = _permissions_cfg.get("folder_permissions") or {}
-DEFAULT_PERMISSIONS = _permissions_cfg.get("default_permissions") or {"read": True, "write": True}
 
-# 下载限制配置
-MAX_SINGLE_FILE_SIZE = _download_cfg.get("max_single_file_size", 100 * 1024 * 1024)
-MAX_TOTAL_DOWNLOAD_SIZE = _download_cfg.get("max_total_download_size", 200 * 1024 * 1024)
-MAX_FILES_IN_ZIP = _download_cfg.get("max_files_in_zip", 500)
-MAX_DIR_DEPTH = _download_cfg.get("max_dir_depth", 20)
-MAX_FILE_PREVIEW_SIZE = _download_cfg.get("max_file_preview_size", 2 * 1024 * 1024)
+def get_effective_config() -> dict:
+    """获取有效配置（用户配置优先，回退到主配置）"""
+    user_cfg = get_user_config()
+    
+    # 会话超时
+    session_timeout = user_cfg.get("session_timeout", _server_cfg.get("session_timeout", 3600))
+    
+    # 默认权限
+    default_perms = user_cfg.get("default_permissions", _permissions_cfg.get("default_permissions", {"read": True, "write": True}))
+    
+    # 下载限制
+    user_dl = user_cfg.get("download_limits", {})
+    download_limits = {
+        "max_single_file_size": user_dl.get("max_single_file_size", _download_cfg.get("max_single_file_size", 100 * 1024 * 1024)),
+        "max_total_download_size": user_dl.get("max_total_download_size", _download_cfg.get("max_total_download_size", 200 * 1024 * 1024)),
+        "max_files_in_zip": user_dl.get("max_files_in_zip", _download_cfg.get("max_files_in_zip", 500)),
+        "max_dir_depth": user_dl.get("max_dir_depth", _download_cfg.get("max_dir_depth", 20)),
+        "max_file_preview_size": user_dl.get("max_file_preview_size", _download_cfg.get("max_file_preview_size", 2 * 1024 * 1024)),
+    }
+    
+    return {
+        "session_timeout": session_timeout,
+        "default_permissions": default_perms,
+        "download_limits": download_limits
+    }
+
+
+# 获取有效运行时配置
+_effective_cfg = get_effective_config()
+SESSION_TIMEOUT = _effective_cfg["session_timeout"]
+DEFAULT_PERMISSIONS = _effective_cfg["default_permissions"]
+_download_limits = _effective_cfg["download_limits"]
+MAX_SINGLE_FILE_SIZE = _download_limits["max_single_file_size"]
+MAX_TOTAL_DOWNLOAD_SIZE = _download_limits["max_total_download_size"]
+MAX_FILES_IN_ZIP = _download_limits["max_files_in_zip"]
+MAX_DIR_DEPTH = _download_limits["max_dir_depth"]
+MAX_FILE_PREVIEW_SIZE = _download_limits["max_file_preview_size"]
+
+# 文件夹权限配置（不在用户配置中，仅从主配置读取）
+FOLDER_PERMISSIONS = _permissions_cfg.get("folder_permissions") or {}
 
 # === Flask 应用 ===
 app = Flask(__name__, static_folder=None)
@@ -988,6 +1067,190 @@ def changepwd():
             return jsonify({'success': True, 'message': message})
         else:
             return jsonify({'error': message}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# === 用户配置 API ===
+@app.route('/api/userconfig', methods=['GET'])
+def userconfig_get():
+    """获取用户配置"""
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    user_cfg = get_user_config()
+    effective = get_effective_config()
+    
+    return jsonify({
+        'config': {
+            'session_timeout': user_cfg.get('session_timeout', effective['session_timeout']),
+            'default_permissions': user_cfg.get('default_permissions', effective['default_permissions']),
+            'download_limits': user_cfg.get('download_limits', effective['download_limits'])
+        },
+        'defaults': {
+            'session_timeout': 3600,
+            'default_permissions': {'read': True, 'write': True},
+            'download_limits': {
+                'max_single_file_size': 100 * 1024 * 1024,
+                'max_total_download_size': 200 * 1024 * 1024,
+                'max_files_in_zip': 500,
+                'max_dir_depth': 20,
+                'max_file_preview_size': 2 * 1024 * 1024
+            }
+        }
+    })
+
+
+@app.route('/api/userconfig', methods=['POST'])
+def userconfig_save():
+    """保存用户配置"""
+    global SESSION_TIMEOUT, DEFAULT_PERMISSIONS
+    global MAX_SINGLE_FILE_SIZE, MAX_TOTAL_DOWNLOAD_SIZE, MAX_FILES_IN_ZIP, MAX_DIR_DEPTH, MAX_FILE_PREVIEW_SIZE
+    
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.json
+        new_config = data.get('config', {})
+        
+        # 验证配置值
+        session_timeout = new_config.get('session_timeout')
+        if session_timeout is not None:
+            if not isinstance(session_timeout, int) or session_timeout < 60 or session_timeout > 86400:
+                return jsonify({'error': '会话超时时间必须在 60-86400 秒之间'}), 400
+        
+        default_permissions = new_config.get('default_permissions')
+        if default_permissions is not None:
+            if not isinstance(default_permissions, dict):
+                return jsonify({'error': '默认权限格式无效'}), 400
+        
+        download_limits = new_config.get('download_limits')
+        if download_limits is not None:
+            if not isinstance(download_limits, dict):
+                return jsonify({'error': '下载限制格式无效'}), 400
+            for key in ['max_single_file_size', 'max_total_download_size', 'max_file_preview_size']:
+                val = download_limits.get(key)
+                if val is not None and (not isinstance(val, int) or val < 0):
+                    return jsonify({'error': f'{key} 必须为正整数'}), 400
+            for key in ['max_files_in_zip', 'max_dir_depth']:
+                val = download_limits.get(key)
+                if val is not None and (not isinstance(val, int) or val < 1):
+                    return jsonify({'error': f'{key} 必须为正整数'}), 400
+        
+        # 构建新的用户配置
+        user_cfg = get_user_config().copy()
+        if session_timeout is not None:
+            user_cfg['session_timeout'] = session_timeout
+        if default_permissions is not None:
+            user_cfg['default_permissions'] = default_permissions
+        if download_limits is not None:
+            user_cfg['download_limits'] = download_limits
+        
+        if save_user_config(user_cfg):
+            # 更新运行时配置
+            effective = get_effective_config()
+            SESSION_TIMEOUT = effective['session_timeout']
+            DEFAULT_PERMISSIONS = effective['default_permissions']
+            MAX_SINGLE_FILE_SIZE = effective['download_limits']['max_single_file_size']
+            MAX_TOTAL_DOWNLOAD_SIZE = effective['download_limits']['max_total_download_size']
+            MAX_FILES_IN_ZIP = effective['download_limits']['max_files_in_zip']
+            MAX_DIR_DEPTH = effective['download_limits']['max_dir_depth']
+            MAX_FILE_PREVIEW_SIZE = effective['download_limits']['max_file_preview_size']
+            
+            return jsonify({'success': True, 'config': user_cfg})
+        else:
+            return jsonify({'error': '保存配置失败'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/userconfig/reset', methods=['POST'])
+def userconfig_reset():
+    """重置用户配置为默认值"""
+    global SESSION_TIMEOUT, DEFAULT_PERMISSIONS
+    global MAX_SINGLE_FILE_SIZE, MAX_TOTAL_DOWNLOAD_SIZE, MAX_FILES_IN_ZIP, MAX_DIR_DEPTH, MAX_FILE_PREVIEW_SIZE
+    
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        if save_user_config({}):
+            # 更新运行时配置为默认值
+            SESSION_TIMEOUT = 3600
+            DEFAULT_PERMISSIONS = {"read": True, "write": True}
+            MAX_SINGLE_FILE_SIZE = 100 * 1024 * 1024
+            MAX_TOTAL_DOWNLOAD_SIZE = 200 * 1024 * 1024
+            MAX_FILES_IN_ZIP = 500
+            MAX_DIR_DEPTH = 20
+            MAX_FILE_PREVIEW_SIZE = 2 * 1024 * 1024
+            
+            return jsonify({'success': True, 'message': '配置已重置为默认值'})
+        else:
+            return jsonify({'error': '重置配置失败'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/userconfig/raw', methods=['GET'])
+def userconfig_raw_get():
+    """获取原始配置文件内容"""
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        if USER_CONFIG_FILE.exists():
+            with USER_CONFIG_FILE.open("r", encoding="utf-8") as f:
+                content = f.read()
+        else:
+            content = ""
+        return jsonify({'content': content})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/userconfig/raw', methods=['POST'])
+def userconfig_raw_save():
+    """保存原始配置文件内容"""
+    global SESSION_TIMEOUT, DEFAULT_PERMISSIONS
+    global MAX_SINGLE_FILE_SIZE, MAX_TOTAL_DOWNLOAD_SIZE, MAX_FILES_IN_ZIP, MAX_DIR_DEPTH, MAX_FILE_PREVIEW_SIZE
+    
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.json
+        content = data.get('content', '')
+        
+        # 验证 YAML 格式
+        try:
+            parsed = yaml.safe_load(content) if content.strip() else {}
+            if parsed is None:
+                parsed = {}
+            if not isinstance(parsed, dict):
+                return jsonify({'error': '配置必须是 YAML 对象格式'}), 400
+        except yaml.YAMLError as e:
+            return jsonify({'error': f'YAML 格式错误: {str(e)}'}), 400
+        
+        # 保存配置文件
+        USER_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with USER_CONFIG_FILE.open("w", encoding="utf-8") as f:
+            f.write(content)
+        
+        # 更新运行时配置
+        global _user_config
+        _user_config = parsed
+        
+        effective = get_effective_config()
+        SESSION_TIMEOUT = effective['session_timeout']
+        DEFAULT_PERMISSIONS = effective['default_permissions']
+        MAX_SINGLE_FILE_SIZE = effective['download_limits']['max_single_file_size']
+        MAX_TOTAL_DOWNLOAD_SIZE = effective['download_limits']['max_total_download_size']
+        MAX_FILES_IN_ZIP = effective['download_limits']['max_files_in_zip']
+        MAX_DIR_DEPTH = effective['download_limits']['max_dir_depth']
+        MAX_FILE_PREVIEW_SIZE = effective['download_limits']['max_file_preview_size']
+        
+        return jsonify({'success': True, 'message': '配置文件已保存'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -22,7 +22,7 @@ fi
 
 # 0. 安装 Python 依赖
 echo -e "${CYAN}[0/5] 安装 Python 依赖...${RESET}"
-pip install -q pyyaml aiohttp 2>/dev/null || pip3 install -q pyyaml aiohttp 2>/dev/null || true
+pip install -q pyyaml flask flask-socketio 2>/dev/null || pip3 install -q pyyaml flask flask-socketio 2>/dev/null || true
 
 # 1. 复制后端服务
 echo -e "${CYAN}[1/5] 安装后端服务...${RESET}"
