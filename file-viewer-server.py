@@ -740,11 +740,15 @@ def file_create():
 
     try:
         data = request.json
+        # Support both 'path' and 'parent+name' format
         path = data.get('path', '')
-        file_type = data.get('type', 'file')
-
         if not path:
-            return jsonify({'error': "Missing 'path' parameter"}), 400
+            parent = data.get('parent', '')
+            name = data.get('name', '')
+            if not parent or not name:
+                return jsonify({'error': "Missing 'path' or 'parent'+'name' parameters"}), 400
+            path = os.path.join(parent, name)
+        file_type = data.get('type', 'file')
 
         path = os.path.normpath(path)
         parent = os.path.dirname(path)
