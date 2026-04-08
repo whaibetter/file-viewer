@@ -445,6 +445,288 @@
         .settings-panel-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1999; display: none; }
         .settings-panel-overlay.visible { display: block; }
 
+        /* ── Tools Section ─────────────────────────────── */
+        .tools-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 16px 24px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+        }
+        .tools-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #8b949e;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tools-tab:hover:not(:disabled) {
+            background: #30363d;
+            color: #c9d1d9;
+            border-color: #8b949e;
+        }
+        .tools-tab.active {
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+            border-color: #58a6ff;
+            color: #58a6ff;
+            font-weight: 600;
+        }
+        .tools-tab:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .tools-tab-icon {
+            font-size: 1.1em;
+        }
+        .tools-tab-badge {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            background: #21262d;
+            border-radius: 4px;
+            color: #6e7681;
+        }
+        .tools-tab-body { display: none; }
+        .tools-tab-body.active { display: block; }
+        .tools-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        .tools-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* OCR Styles */
+        .ocr-card {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 0;
+            min-height: calc(100vh - 200px);
+        }
+        .ocr-upload-section {
+            padding: 24px;
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .ocr-upload-zone {
+            border: 2px dashed #30363d;
+            border-radius: 10px;
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #0d1117;
+        }
+        .ocr-upload-zone:hover {
+            border-color: #58a6ff;
+            background: rgba(88, 166, 255, 0.05);
+        }
+        .ocr-upload-zone.dragover {
+            border-color: #58a6ff;
+            background: rgba(88, 166, 255, 0.1);
+        }
+        .ocr-upload-icon {
+            width: 64px;
+            height: 64px;
+            color: #484f58;
+            margin-bottom: 12px;
+        }
+        .ocr-upload-text {
+            color: #c9d1d9;
+            font-size: 1em;
+            margin-bottom: 6px;
+        }
+        .ocr-upload-hint {
+            color: #6e7681;
+            font-size: 0.85em;
+        }
+        .ocr-preview-img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .ocr-preview-name {
+            color: #8b949e;
+            font-size: 0.85em;
+        }
+        
+        .ocr-config-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .ocr-config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .ocr-config-item label {
+            font-size: 0.85em;
+            color: #8b949e;
+            font-weight: 500;
+        }
+        .ocr-config-item .optional {
+            font-size: 0.75em;
+            color: #484f58;
+            font-weight: normal;
+        }
+        .ocr-select, .ocr-input {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px 14px;
+            color: #c9d1d9;
+            font-size: 0.9em;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .ocr-select:focus, .ocr-input:focus {
+            border-color: #58a6ff;
+        }
+        .ocr-model-row {
+            display: flex;
+            gap: 8px;
+        }
+        .ocr-model-row .ocr-input {
+            flex: 1;
+        }
+        .ocr-model-row .ocr-select {
+            width: 140px;
+        }
+        .ocr-execute-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .ocr-execute-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .ocr-btn-icon {
+            font-size: 1.1em;
+        }
+
+        .ocr-result-section {
+            display: flex;
+            flex-direction: column;
+            background: #0d1117;
+        }
+        .ocr-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid #30363d;
+            background: #161b22;
+        }
+        .ocr-result-title {
+            font-size: 0.9em;
+            color: #c9d1d9;
+            font-weight: 600;
+        }
+        .ocr-result-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .ocr-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .ocr-action-btn:hover:not(:disabled) {
+            background: #30363d;
+            border-color: #8b949e;
+        }
+        .ocr-action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .ocr-result-content {
+            flex: 1;
+            padding: 20px 24px;
+            overflow-y: auto;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            color: #e6edf3;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .ocr-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 300px;
+        }
+        .ocr-placeholder-icon {
+            width: 80px;
+            height: 80px;
+            color: #30363d;
+            margin-bottom: 16px;
+        }
+        .ocr-placeholder-text {
+            color: #484f58;
+            font-size: 0.95em;
+        }
+        
+        .ocr-result-item {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .ocr-result-item:hover {
+            border-color: #30363d;
+        }
+        .ocr-result-item.ocr-title {
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-color: rgba(88, 166, 255, 0.3);
+        }
+        .ocr-type-tag {
+            display: inline-block;
+            font-size: 0.7em;
+            padding: 2px 8px;
+            background: #21262d;
+            border-radius: 4px;
+            color: #8b949e;
+            margin-right: 8px;
+            font-weight: 500;
+        }
+        .ocr-type-tag.ocr {
+            background: rgba(88, 166, 255, 0.2);
+            color: #58a6ff;
+        }
+
         /* ── Responsive Design ─────────────────────────────── */
         .settings-tabs { display: flex; gap: 0; border-bottom: 1px solid #30363d; }
         .settings-tab { flex: 1; padding: 12px 8px; background: none; border: none; color: #8b949e; font-size: 0.85em; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
@@ -777,6 +1059,7 @@
     <div class="nav-tabs">
         <button class="nav-tab active" id="tabFiles" onclick="switchTab('files')">文件浏览</button>
         <button class="nav-tab" id="tabMonitor" onclick="switchTab('monitor')">系统监控</button>
+        <button class="nav-tab" id="tabTools" onclick="switchTab('tools')">工具</button>
     </div>
     <button class="settings-btn" onclick="openSettingsPanel()" title="设置">⚙️</button>
     <button class="logout-btn" onclick="doLogout()">退出登录</button>
@@ -816,6 +1099,121 @@
         <div class="state-box">
             <div class="state-icon">⏳</div>
             <div class="state-title">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ TOOLS SECTION ============ -->
+<div id="sectionTools" class="section-hidden" style="flex:1;display:flex;flex-direction:column;">
+    <!-- 工具子标签 -->
+    <div class="tools-tabs">
+        <button class="tools-tab active" onclick="switchToolsTab('ocr')">
+            <span class="tools-tab-icon">📝</span>
+            <span>OCR 识别</span>
+        </button>
+        <button class="tools-tab" onclick="switchToolsTab('tools2')" disabled>
+            <span class="tools-tab-icon">🔧</span>
+            <span>更多工具</span>
+            <span class="tools-tab-badge">开发中</span>
+        </button>
+    </div>
+    
+    <!-- OCR 标签页 -->
+    <div id="toolsTabOcr" class="tools-tab-body active">
+        <div class="tools-content">
+            <div class="tools-card ocr-card">
+                <!-- 左侧：图片上传区域 -->
+                <div class="ocr-upload-section">
+                    <div class="ocr-upload-zone" id="ocrDropZone" onclick="document.getElementById('ocrFileInput').click()">
+                        <input type="file" id="ocrFileInput" accept="image/*" style="display:none;" onchange="handleOcrFile(this)">
+                        <div id="ocrPreview">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="ocr-upload-icon">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            <p class="ocr-upload-text">点击或拖拽图片到此处</p>
+                            <p class="ocr-upload-hint">支持 JPG、PNG、WEBP 等格式</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 配置区域 -->
+                    <div class="ocr-config-section">
+                        <div class="ocr-config-item">
+                            <label>识别模式</label>
+                            <select id="ocrMode" class="ocr-select">
+                                <option value="ocr">OCR 文字识别</option>
+                                <option value="markdown">Markdown 格式</option>
+                                <option value="free">纯文本提取</option>
+                            </select>
+                        </div>
+                        <div class="ocr-config-item">
+                            <label>OCR 模型</label>
+                            <div class="ocr-model-row">
+                                <input type="text" id="ocrModelInput" class="ocr-input" placeholder="deepseek-ai/DeepSeek-OCR">
+                                <select id="ocrModelSelect" class="ocr-select" onchange="document.getElementById('ocrModelInput').value = this.value">
+                                    <option value="">选择模型</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="ocr-config-item">
+                            <label>API Key <span class="optional">(可选)</span></label>
+                            <input type="password" id="ocrApiKey" class="ocr-input" placeholder="留空使用默认配置">
+                        </div>
+                        <button class="btn primary ocr-execute-btn" onclick="executeOcr()" id="ocrExecuteBtn">
+                            <span class="ocr-btn-icon">🚀</span>
+                            开始识别
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 右侧：结果展示区域 -->
+                <div class="ocr-result-section">
+                    <div class="ocr-result-header">
+                        <span class="ocr-result-title">识别结果</span>
+                        <div class="ocr-result-actions">
+                            <button class="ocr-action-btn" onclick="copyOcrResult()" id="ocrCopyBtn" disabled>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                                复制
+                            </button>
+                            <button class="ocr-action-btn" onclick="saveOcrResult()" id="ocrSaveBtn" disabled>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                保存
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ocr-result-content" id="ocrResultContent">
+                        <div class="ocr-placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="ocr-placeholder-icon">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                            <p class="ocr-placeholder-text">上传图片后开始识别</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 更多工具标签页 (占位) -->
+    <div id="toolsTabTools2" class="tools-tab-body">
+        <div class="tools-content">
+            <div class="state-box">
+                <div class="state-icon">🔧</div>
+                <div class="state-title">更多工具开发中</div>
+                <div class="state-msg">即将推出更多实用工具，敬请期待...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -1621,18 +2019,249 @@ function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
     document.getElementById('tabMonitor').classList.toggle('active', tab === 'monitor');
+    document.getElementById('tabTools').classList.toggle('active', tab === 'tools');
     const sf = document.getElementById('sectionFiles');
     const sm = document.getElementById('sectionMonitor');
+    const st = document.getElementById('sectionTools');
     if (tab === 'files') {
         sf.classList.remove('section-hidden');
         sm.classList.add('section-hidden');
+        st.classList.add('section-hidden');
         stopMonitor();
     } else if (tab === 'monitor') {
         sf.classList.add('section-hidden');
         sm.classList.remove('section-hidden');
+        st.classList.add('section-hidden');
         sm.style.display = 'flex';
         startMonitor();
+    } else if (tab === 'tools') {
+        sf.classList.add('section-hidden');
+        sm.classList.add('section-hidden');
+        st.classList.remove('section-hidden');
+        st.style.display = 'flex';
+        stopMonitor();
+        loadOcrModels();
     }
+}
+
+// Tools Tab Functions
+function switchToolsTab(tab) {
+    document.querySelectorAll('.tools-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tools-tab-body').forEach(body => body.classList.remove('active'));
+    
+    if (tab === 'ocr') {
+        document.querySelector('.tools-tab:nth-child(1)').classList.add('active');
+        document.getElementById('toolsTabOcr').classList.add('active');
+    } else if (tab === 'tools2') {
+        document.querySelector('.tools-tab:nth-child(2)').classList.add('active');
+        document.getElementById('toolsTabTools2').classList.add('active');
+    }
+}
+
+// OCR Functions
+let ocrImageData = '';
+let ocrLastResult = '';
+let ocrModels = [];
+
+async function loadOcrModels() {
+    try {
+        const res = await fetch('/api/ai/models');
+        if (res.ok) {
+            ocrModels = await res.json();
+            const select = document.getElementById('ocrModelSelect');
+            select.innerHTML = '<option value="">选择模型</option>';
+            ocrModels.filter(m => m.id && (
+                m.id.includes('OCR') || 
+                m.id.includes('PaddleOCR') || 
+                m.id.includes('VL') || 
+                m.id.toLowerCase().includes('ocr')
+            )).forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                select.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.error('Failed to load OCR models:', e);
+    }
+    
+    // 设置拖拽事件
+    const dropZone = document.getElementById('ocrDropZone');
+    if (dropZone && !dropZone.hasAttribute('data-drag-init')) {
+        dropZone.setAttribute('data-drag-init', 'true');
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleOcrFile({ files: [file] });
+            }
+        });
+    }
+}
+
+function handleOcrFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        ocrImageData = e.target.result.split(',')[1];
+        
+        document.getElementById('ocrPreview').innerHTML = `
+            <img src="${e.target.result}" class="ocr-preview-img">
+            <p class="ocr-preview-name">${escHtml(file.name)}</p>
+        `;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function executeOcr() {
+    if (!ocrImageData) {
+        showToast('请先上传图片', 'error');
+        return;
+    }
+
+    const mode = document.getElementById('ocrMode').value;
+    const model = document.getElementById('ocrModelInput').value || 'deepseek-ai/DeepSeek-OCR';
+    const apiKey = document.getElementById('ocrApiKey').value;
+
+    const btn = document.getElementById('ocrExecuteBtn');
+    const resultDiv = document.getElementById('ocrResultContent');
+    const copyBtn = document.getElementById('ocrCopyBtn');
+    const saveBtn = document.getElementById('ocrSaveBtn');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ocr-btn-icon">⏳</span> 识别中...';
+    resultDiv.innerHTML = '<div style="color:#8b949e;text-align:center;padding:40px;">正在进行 OCR 识别，请稍候...</div>';
+
+    const requestData = {
+        image: ocrImageData,
+        prompt_type: mode,
+        model: model
+    };
+    
+    if (apiKey && !apiKey.includes('*')) {
+        requestData.api_key = apiKey;
+    }
+
+    try {
+        const res = await fetch('/api/ai/ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            ocrLastResult = data.output;
+            
+            // 渲染结果
+            if (mode === 'markdown') {
+                const lines = data.output.split('\n').filter(line => line.trim());
+                let html = '';
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (trimmed) {
+                        let tag = '';
+                        let content = escHtml(trimmed);
+                        let itemClass = '';
+                        
+                        if (trimmed.startsWith('## ')) {
+                            tag = '<span class="ocr-type-tag">标题</span>';
+                            content = escHtml(trimmed.replace(/^##+\s*/, ''));
+                            itemClass = 'ocr-title';
+                        } else if (trimmed.startsWith('# ')) {
+                            tag = '<span class="ocr-type-tag">主标题</span>';
+                            content = escHtml(trimmed.replace(/^#+\s*/, ''));
+                            itemClass = 'ocr-title';
+                        }
+                        
+                        html += `<div class="ocr-result-item ${itemClass}">${tag}${content}</div>`;
+                    }
+                });
+                resultDiv.innerHTML = html || '<div style="color:#8b949e;">无识别结果</div>';
+            } else {
+                resultDiv.innerHTML = escHtml(data.output);
+            }
+            
+            copyBtn.disabled = false;
+            saveBtn.disabled = false;
+            showToast('识别完成', 'success');
+            
+            if (apiKey && !apiKey.includes('*')) {
+                document.getElementById('ocrApiKey').value = '';
+                document.getElementById('ocrApiKey').placeholder = '已配置 (留空使用已保存配置)';
+            }
+        } else {
+            resultDiv.innerHTML = `<div style="color:#f85149;">识别失败: ${escHtml(data.error || '未知错误')}</div>`;
+            showToast('识别失败', 'error');
+        }
+    } catch (e) {
+        resultDiv.innerHTML = `<div style="color:#f85149;">网络错误: ${escHtml(e.message)}</div>`;
+        showToast('网络错误', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="ocr-btn-icon">🚀</span> 开始识别';
+    }
+}
+
+function copyOcrResult() {
+    if (!ocrLastResult) {
+        showToast('暂无结果可复制', 'error');
+        return;
+    }
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(ocrLastResult).then(() => {
+            showToast('已复制到剪贴板', 'success');
+        }).catch(() => {
+            fallbackCopy(ocrLastResult);
+        });
+    } else {
+        fallbackCopy(ocrLastResult);
+    }
+}
+
+function fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showToast('已复制到剪贴板', 'success');
+    } catch (e) {
+        showToast('复制失败，请手动复制', 'error');
+    }
+    document.body.removeChild(textarea);
+}
+
+function saveOcrResult() {
+    if (!ocrLastResult) {
+        showToast('暂无结果可保存', 'error');
+        return;
+    }
+    
+    const blob = new Blob([ocrLastResult], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ocr_result_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('结果已保存', 'success');
 }
 
 // Settings Panel Functions
