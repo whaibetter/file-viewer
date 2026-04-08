@@ -4,7 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /usr/local/bin/file-viewer-server.py
+WorkingDirectory=/home/file-viewer
+ExecStart=/usr/bin/python3 /home/file-viewer/file-viewer-server.py
 Restart=always
 RestartSec=3
 User=root

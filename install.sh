@@ -20,32 +20,22 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 0. 安装 Python 依赖
-echo -e "${CYAN}[0/5] 安装 Python 依赖...${RESET}"
+# 1. 安装 Python 依赖
+echo -e "${CYAN}[1/4] 安装 Python 依赖...${RESET}"
 pip install -q pyyaml flask flask-socketio 2>/dev/null || pip3 install -q pyyaml flask flask-socketio 2>/dev/null || true
 
-# 1. 复制后端服务
-echo -e "${CYAN}[1/5] 安装后端服务...${RESET}"
-cp "$SCRIPT_DIR/file-viewer-server.py" /usr/local/bin/
-chmod 644 /usr/local/bin/file-viewer-server.py
-
 # 2. 复制管理脚本
-echo -e "${CYAN}[2/5] 安装管理脚本...${RESET}"
+echo -e "${CYAN}[2/4] 安装管理脚本...${RESET}"
 cp "$SCRIPT_DIR/file-viewer" /usr/local/bin/
 chmod 755 /usr/local/bin/file-viewer
 
-# 3. 复制前端文件
-echo -e "${CYAN}[3/5] 安装前端文件...${RESET}"
-mkdir -p /usr/local/share/file-viewer
-cp "$SCRIPT_DIR/index.html" /usr/local/share/file-viewer/
-
-# 4. 安装 systemd 服务
-echo -e "${CYAN}[4/5] 安装 systemd 服务...${RESET}"
+# 3. 安装 systemd 服务
+echo -e "${CYAN}[3/4] 安装 systemd 服务...${RESET}"
 cp "$SCRIPT_DIR/file-viewer.service" /etc/systemd/system/
 systemctl daemon-reload
 
-# 5. 创建密码文件（如果不存在）
-echo -e "${CYAN}[5/5] 初始化密码文件...${RESET}"
+# 4. 创建密码文件（如果不存在）
+echo -e "${CYAN}[4/4] 初始化密码文件...${RESET}"
 mkdir -p /etc/file-viewer
 if [ ! -f /etc/file-viewer/passwd ]; then
     # 默认密码: admin
@@ -66,12 +56,17 @@ systemctl restart file-viewer
 echo ""
 echo -e "${GREEN}${BOLD}安装完成！${RESET}"
 echo ""
+echo -e "项目目录: ${CYAN}/home/file-viewer${RESET}"
 echo -e "访问地址: ${CYAN}http://$(hostname -I | awk '{print $1}')${RESET}"
 echo -e "默认密码: ${CYAN}admin${RESET} (请及时修改)"
 echo ""
 echo -e "管理命令:"
 echo -e "  ${CYAN}file-viewer start${RESET}    启动服务"
 echo -e "  ${CYAN}file-viewer stop${RESET}     停止服务"
-echo -e "  ${CYAN}file-viewer restart${RESET}  重启服务"
+echo -e "  ${CYAN}file-viewer restart${RESET}  重启服务 (加载最新代码)"
 echo -e "  ${CYAN}file-viewer status${RESET}   查看状态"
 echo -e "  ${CYAN}file-viewer passwd${RESET}   修改密码"
+echo ""
+echo -e "${BOLD}提示：${RESET}服务直接运行项目目录中的代码"
+echo -e "       修改 index.html 或 file-viewer-server.py 后"
+echo -e "       运行 ${CYAN}file-viewer restart${RESET} 即可生效"
