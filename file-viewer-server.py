@@ -1405,9 +1405,10 @@ def ai_ocr():
             if "choices" in result and len(result["choices"]) > 0:
                 content = result["choices"][0].get("message", {}).get("content", "")
                 
-                # 移除特殊标签
-                output = re.sub(r'<\|ref\|>.*?<\|\/ref\|>', '', content, flags=re.DOTALL)
-                output = re.sub(r'<\|det\|>.*?<\|\/det\|>', '', output, flags=re.DOTALL)
+                # 从 <|ref|>文字<|/ref|><|det|>坐标<|/det|> 格式中提取文字
+                # 先提取所有 <|ref|>...<|/ref|> 中的文字
+                texts = re.findall(r'<\|ref\|>(.*?)<\|\/ref\|>', content, flags=re.DOTALL)
+                output = '\n'.join(texts)
                 output = re.sub(r'\n{3,}', '\n\n', output)
                 output = output.strip()
 
