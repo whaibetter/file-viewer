@@ -1405,10 +1405,19 @@ def ai_ocr():
             if "choices" in result and len(result["choices"]) > 0:
                 content = result["choices"][0].get("message", {}).get("content", "")
                 
-                # 从 <|ref|>文字<|/ref|><|det|>坐标<|/det|> 格式中提取文字
-                # 先提取所有 <|ref|>...<|/ref|> 中的文字
-                texts = re.findall(r'<\|ref\|>(.*?)<\|\/ref\|>', content, flags=re.DOTALL)
-                output = '\n'.join(texts)
+                # 根据模式处理输出
+                if prompt_type == "ocr" and "<|ref|>" in content:
+                    # OCR 模式：从 <|ref|>文字<|/ref|><|det|>坐标<|/det|> 格式中提取文字
+                    texts = re.findall(r'<\|ref\|>(.*?)<\|\/ref\|>', content, flags=re.DOTALL)
+                    output = '\n'.join(texts)
+                elif "<|ref|>" in content or "<|det|>" in content:
+                    # Markdown/Free 模式但包含标签：移除标签保留文本
+                    output = re.sub(r'<\|ref\|>.*?<\|\/ref\|>', '', content, flags=re.DOTALL)
+                    output = re.sub(r'<\|det\|>.*?<\|\/det\|>', '', output, flags=re.DOTALL)
+                else:
+                    # 无标签：直接输出
+                    output = content
+                
                 output = re.sub(r'\n{3,}', '\n\n', output)
                 output = output.strip()
 
