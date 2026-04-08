@@ -250,6 +250,44 @@
         .md-body img { max-width: 100%; border-radius: 6px; }
         .md-body input[type="checkbox"] { margin-right: 6px; accent-color: #58a6ff; }
 
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 0.9em;
+            color: #c9d1d9;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success {
+            background: rgba(35, 134, 54, 0.9);
+            border-color: #238636;
+            color: #fff;
+        }
+        .toast.error {
+            background: rgba(248, 81, 73, 0.9);
+            border-color: #f85149;
+            color: #fff;
+        }
+        .toast.info {
+            background: rgba(88, 166, 255, 0.9);
+            border-color: #58a6ff;
+            color: #fff;
+        }
+
         /* ── Login ── */
         #loginOverlay { display: none; position: fixed; inset: 0; background: #0d1117; z-index: 1000; justify-content: center; align-items: center; }
         #loginOverlay.visible { display: flex; }
@@ -2423,6 +2461,16 @@ function buildBreadcrumb(path) {
     bc.innerHTML = html;
 }
 
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function formatSize(n) {
@@ -3188,6 +3236,9 @@ checkAuth();
         <div id="modalContent" class="modal-content"></div>
     </div>
 </div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
 
 </body>
 </html>
