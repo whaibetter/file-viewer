@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -250,44 +252,6 @@
         .md-body img { max-width: 100%; border-radius: 6px; }
         .md-body input[type="checkbox"] { margin-right: 6px; accent-color: #58a6ff; }
 
-        /* ── Toast ── */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 12px 24px;
-            font-size: 0.9em;
-            color: #c9d1d9;
-            z-index: 9999;
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-        }
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-        .toast.success {
-            background: rgba(35, 134, 54, 0.9);
-            border-color: #238636;
-            color: #fff;
-        }
-        .toast.error {
-            background: rgba(248, 81, 73, 0.9);
-            border-color: #f85149;
-            color: #fff;
-        }
-        .toast.info {
-            background: rgba(88, 166, 255, 0.9);
-            border-color: #58a6ff;
-            color: #fff;
-        }
-
         /* ── Login ── */
         #loginOverlay { display: none; position: fixed; inset: 0; background: #0d1117; z-index: 1000; justify-content: center; align-items: center; }
         #loginOverlay.visible { display: flex; }
@@ -482,368 +446,121 @@
         .settings-section-title { font-size: 0.82em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
         .settings-panel-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1999; display: none; }
         .settings-panel-overlay.visible { display: block; }
-
-        /* ── Tools Section ─────────────────────────────── */
-        .tools-tabs {
-            display: flex;
-            gap: 4px;
-            padding: 16px 24px;
-            background: #161b22;
-            border-bottom: 1px solid #30363d;
-        }
-        .tools-tab {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: #21262d;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            color: #8b949e;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tools-tab:hover:not(:disabled) {
-            background: #30363d;
-            color: #c9d1d9;
-            border-color: #8b949e;
-        }
-        .tools-tab.active {
-            background: linear-gradient(135deg, rgba(88, 166, 255, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
-            border-color: #58a6ff;
-            color: #58a6ff;
-            font-weight: 600;
-        }
-        .tools-tab:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .tools-tab-icon {
-            font-size: 1.1em;
-        }
-        .tools-tab-badge {
-            font-size: 0.7em;
-            padding: 2px 6px;
-            background: #21262d;
-            border-radius: 4px;
-            color: #6e7681;
-        }
-        .tools-tab-body { display: none; }
-        .tools-tab-body.active { display: block; }
-        .tools-content {
+        
+        /* ── Terminal (xterm.js) ─────────────────────────── */
+        .terminal-container {
             flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-        }
-        .tools-card {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            background: #0d1117;
             overflow: hidden;
         }
-
-        /* OCR Styles */
-        .ocr-card {
-            display: grid;
-            grid-template-columns: 400px 1fr;
-            gap: 0;
-            min-height: calc(100vh - 200px);
-        }
-        .ocr-upload-section {
-            padding: 24px;
-            border-right: 1px solid #30363d;
+        
+        .terminal-header {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .ocr-upload-zone {
-            border: 2px dashed #30363d;
-            border-radius: 10px;
-            padding: 32px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: #0d1117;
-        }
-        .ocr-upload-zone:hover {
-            border-color: #58a6ff;
-            background: rgba(88, 166, 255, 0.05);
-        }
-        .ocr-upload-zone.dragover {
-            border-color: #58a6ff;
-            background: rgba(88, 166, 255, 0.1);
-        }
-        .ocr-upload-icon {
-            width: 64px;
-            height: 64px;
-            color: #484f58;
-            margin-bottom: 12px;
-        }
-        .ocr-upload-text {
-            color: #c9d1d9;
-            font-size: 1em;
-            margin-bottom: 6px;
-        }
-        .ocr-upload-hint {
-            color: #6e7681;
-            font-size: 0.85em;
-        }
-        .ocr-preview-img {
-            max-width: 100%;
-            max-height: 200px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .ocr-preview-name {
-            color: #8b949e;
-            font-size: 0.85em;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            flex-shrink: 0;
         }
         
-        .ocr-config-section {
+        .terminal-title {
+            font-weight: 600;
+            color: #58a6ff;
+            font-size: 0.95em;
             display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .ocr-config-item {
-            display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 6px;
         }
-        .ocr-config-item label {
-            font-size: 0.85em;
-            color: #8b949e;
-            font-weight: 500;
-        }
-        .ocr-config-item .optional {
+        
+        .terminal-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             font-size: 0.75em;
-            color: #484f58;
-            font-weight: normal;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(63, 185, 80, 0.15);
+            color: #3fb950;
         }
-        .ocr-select, .ocr-input {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 10px 14px;
-            color: #c9d1d9;
-            font-size: 0.9em;
-            outline: none;
-            transition: border-color 0.2s;
+        .terminal-status.disconnected {
+            background: rgba(248, 81, 73, 0.15);
+            color: #f85149;
         }
-        .ocr-select:focus, .ocr-input:focus {
-            border-color: #58a6ff;
-        }
-        .ocr-model-row {
+        
+        .terminal-actions {
             display: flex;
-            gap: 8px;
-        }
-        .ocr-model-row .ocr-input {
-            flex: 1;
-        }
-        .ocr-model-row .ocr-select {
-            width: 140px;
-        }
-        .ocr-execute-btn {
-            width: 100%;
-            padding: 12px;
-            font-size: 1em;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 8px;
-        }
-        .ocr-execute-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .ocr-btn-icon {
-            font-size: 1.1em;
-        }
-
-        .ocr-result-section {
-            display: flex;
-            flex-direction: column;
-            background: #0d1117;
-        }
-        .ocr-result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 24px;
-            border-bottom: 1px solid #30363d;
-            background: #161b22;
-        }
-        .ocr-result-title {
-            font-size: 0.9em;
-            color: #c9d1d9;
-            font-weight: 600;
-        }
-        .ocr-result-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .ocr-action-btn {
-            display: flex;
-            align-items: center;
             gap: 6px;
-            padding: 6px 14px;
+            margin-left: auto;
+        }
+        
+        .terminal-btn {
             background: #21262d;
             border: 1px solid #30363d;
-            border-radius: 6px;
             color: #c9d1d9;
-            font-size: 0.85em;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.8em;
             cursor: pointer;
             transition: all 0.15s;
-        }
-        .ocr-action-btn:hover:not(:disabled) {
-            background: #30363d;
-            border-color: #8b949e;
-        }
-        .ocr-action-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        .ocr-result-content {
-            flex: 1;
-            padding: 20px 24px;
-            overflow-y: auto;
-            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-            font-size: 0.9em;
-            line-height: 1.6;
-            color: #e6edf3;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        #ocrDebugContainer {
-            border-top: 1px solid #30363d;
-        }
-        .ocr-placeholder {
-            display: flex;
-            flex-direction: column;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            height: 100%;
-            min-height: 300px;
+            gap: 4px;
         }
-        .ocr-placeholder-icon {
-            width: 80px;
-            height: 80px;
-            color: #30363d;
-            margin-bottom: 16px;
-        }
-        .ocr-placeholder-text {
-            color: #484f58;
-            font-size: 0.95em;
+        .terminal-btn:hover { background: #30363d; border-color: #8b949e; }
+        
+        .terminal-quick-cmds {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 16px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            align-items: center;
+            flex-shrink: 0;
         }
         
-        .ocr-result-item {
-            background: #161b22;
-            border: 1px solid #21262d;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 10px;
-            transition: all 0.2s;
-        }
-        .ocr-result-item:hover {
-            border-color: #30363d;
-        }
-        .ocr-result-item.ocr-title {
-            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
-            border-color: rgba(88, 166, 255, 0.3);
-        }
-        .ocr-type-tag {
-            display: inline-block;
-            font-size: 0.7em;
-            padding: 2px 8px;
-            background: #21262d;
-            border-radius: 4px;
+        .quick-cmd-label {
             color: #8b949e;
-            margin-right: 8px;
-            font-weight: 500;
+            font-size: 0.8em;
+            margin-right: 4px;
         }
-        .ocr-type-tag.ocr {
-            background: rgba(88, 166, 255, 0.2);
+        
+        .quick-cmd-btn {
+            background: #21262d;
+            border: 1px solid #30363d;
             color: #58a6ff;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.78em;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.15s;
         }
-
-        /* OCR Debug Panel */
-        .ocr-debug-panel {
-            background: #161b22;
-            border: none;
+        .quick-cmd-btn:hover { background: #30363d; border-color: #58a6ff; }
+        
+        .terminal-body {
+            flex: 1;
+            padding: 8px;
+            background: #0d1117;
             overflow: hidden;
         }
-        .ocr-debug-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            background: #21262d;
-            cursor: pointer;
-            user-select: none;
-            font-size: 0.85em;
-            color: #8b949e;
-            transition: background 0.15s;
+        
+        #xterm-terminal {
+            height: 100%;
         }
-        .ocr-debug-header:hover {
+        
+        .terminal-resize-handle {
+            height: 4px;
             background: #30363d;
+            cursor: ns-resize;
+            flex-shrink: 0;
         }
-        .ocr-debug-content {
-            padding: 16px;
-        }
-        .ocr-debug-section {
-            margin-bottom: 16px;
-        }
-        .ocr-debug-section:last-child {
-            margin-bottom: 0;
-        }
-        .ocr-debug-title {
-            font-size: 0.8em;
-            color: #58a6ff;
-            font-weight: 600;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .ocr-debug-grid {
-            display: grid;
-            gap: 8px;
-        }
-        .ocr-debug-row {
-            display: grid;
-            grid-template-columns: 80px 1fr;
-            gap: 8px;
-            font-size: 0.8em;
-            font-family: monospace;
-            align-items: start;
-        }
-        .ocr-debug-label {
-            color: #6e7681;
-            font-weight: 500;
-        }
-        .ocr-debug-value {
-            color: #c9d1d9;
-            word-break: break-all;
-            line-height: 1.4;
-        }
-        .ocr-debug-raw {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 12px;
-            font-size: 0.75em;
-            font-family: monospace;
-            color: #8b949e;
-            white-space: pre-wrap;
-            word-break: break-word;
-            max-height: 200px;
-            overflow-y: auto;
-            line-height: 1.5;
-        }
-
-        /* ── Responsive Design ─────────────────────────────── */
+        .terminal-resize-handle:hover { background: #58a6ff; }
+        
+        /* Settings Tabs */
         .settings-tabs { display: flex; gap: 0; border-bottom: 1px solid #30363d; }
         .settings-tab { flex: 1; padding: 12px 8px; background: none; border: none; color: #8b949e; font-size: 0.85em; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
         .settings-tab:hover { color: #c9d1d9; background: rgba(255,255,255,0.02); }
@@ -853,68 +570,14 @@
         .quick-path-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .quick-path-form .path-input { flex: 1; min-width: 120px; }
         .quick-path-form .btn { flex-shrink: 0; }
+
+        /* ── Responsive Design ─────────────────────────────── */
         /* 移动端卡片式文件列表样式 */
         .file-card-list { display: none; }
         
         /* 移动端进程卡片列表样式 */
         .proc-card-list { display: none; }
         
-        /* OCR 移动端响应式 */
-        @media (max-width: 768px) {
-            .ocr-card {
-                grid-template-columns: 1fr;
-            }
-            .ocr-upload-section {
-                border-right: none;
-                border-bottom: 1px solid #30363d;
-                padding: 16px;
-            }
-            .ocr-result-section {
-                min-height: 300px;
-            }
-            .ocr-result-header {
-                padding: 12px 16px;
-            }
-            .ocr-result-content {
-                padding: 12px 16px;
-            }
-            .ocr-config-section {
-                gap: 12px;
-            }
-            .ocr-debug-panel {
-                margin-top: 12px;
-            }
-            .ocr-debug-content {
-                padding: 12px;
-            }
-            .ocr-debug-row {
-                flex-direction: column;
-                gap: 4px;
-                padding: 8px;
-            }
-            .ocr-debug-label {
-                min-width: auto;
-            }
-            .ocr-debug-raw {
-                max-height: 150px;
-                padding: 10px;
-                font-size: 0.7em;
-            }
-            .ocr-upload-zone {
-                padding: 20px 16px;
-            }
-            .ocr-upload-icon {
-                width: 48px;
-                height: 48px;
-            }
-            .ocr-model-row {
-                flex-direction: column;
-            }
-            .ocr-model-row .ocr-select {
-                width: 100%;
-            }
-        }
-
         @media (max-width: 768px) {
             /* Header */
             header { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
@@ -1175,6 +838,14 @@
             .proc-card-stat-value.cpu { color: #f85149; }
             .proc-card-stat-value.mem { color: #58a6ff; }
 
+            /* Terminal */
+            .terminal-header { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+            .terminal-title { font-size: 0.85em; }
+            .terminal-quick-cmds { padding: 6px 12px; }
+            .quick-cmd-label { display: none; }
+            .quick-cmd-btn { padding: 3px 8px; font-size: 0.72em; }
+            .terminal-body { padding: 4px; }
+
             /* Checkbox */
             .checkbox-cell { width: 32px; }
             .checkbox-cell input[type="checkbox"] { width: 18px; height: 18px; }
@@ -1231,7 +902,7 @@
     <div class="nav-tabs">
         <button class="nav-tab active" id="tabFiles" onclick="switchTab('files')">文件浏览</button>
         <button class="nav-tab" id="tabMonitor" onclick="switchTab('monitor')">系统监控</button>
-        <button class="nav-tab" id="tabTools" onclick="switchTab('tools')">工具</button>
+        <button class="nav-tab" id="tabTerminal" onclick="switchTab('terminal')">终端</button>
     </div>
     <button class="settings-btn" onclick="openSettingsPanel()" title="设置">⚙️</button>
     <button class="logout-btn" onclick="doLogout()">退出登录</button>
@@ -1275,118 +946,42 @@
     </div>
 </div>
 
-<!-- ============ TOOLS SECTION ============ -->
-<div id="sectionTools" class="section-hidden" style="flex:1;display:flex;flex-direction:column;">
-    <!-- 工具子标签 -->
-    <div class="tools-tabs">
-        <button class="tools-tab active" onclick="switchToolsTab('ocr')">
-            <span class="tools-tab-icon">📝</span>
-            <span>OCR 识别</span>
-        </button>
-        <button class="tools-tab" onclick="switchToolsTab('tools2')" disabled>
-            <span class="tools-tab-icon">🔧</span>
-            <span>更多工具</span>
-            <span class="tools-tab-badge">开发中</span>
-        </button>
-    </div>
-    
-    <!-- OCR 标签页 -->
-    <div id="toolsTabOcr" class="tools-tab-body active">
-        <div class="tools-content">
-            <div class="tools-card ocr-card">
-                <!-- 左侧：图片上传区域 -->
-                <div class="ocr-upload-section">
-                    <div class="ocr-upload-zone" id="ocrDropZone" onclick="document.getElementById('ocrFileInput').click()">
-                        <input type="file" id="ocrFileInput" accept="image/*" style="display:none;" onchange="handleOcrFile(this)">
-                        <div id="ocrPreview">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="ocr-upload-icon">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21 15 16 10 5 21"/>
-                            </svg>
-                            <p class="ocr-upload-text">点击或拖拽图片到此处</p>
-                            <p class="ocr-upload-hint">支持 JPG、PNG、WEBP 等格式</p>
-                        </div>
-                    </div>
-                    
-                    <!-- 配置区域 -->
-                    <div class="ocr-config-section">
-                        <div class="ocr-config-item">
-                            <label>识别模式</label>
-                            <select id="ocrMode" class="ocr-select">
-                                <option value="ocr">OCR 文字识别</option>
-                                <option value="markdown">Markdown 格式</option>
-                                <option value="free">纯文本提取</option>
-                            </select>
-                        </div>
-                        <div class="ocr-config-item">
-                            <label>OCR 模型</label>
-                            <div class="ocr-model-row">
-                                <input type="text" id="ocrModelInput" class="ocr-input" placeholder="deepseek-ai/DeepSeek-OCR">
-                                <select id="ocrModelSelect" class="ocr-select" onchange="document.getElementById('ocrModelInput').value = this.value">
-                                    <option value="">选择模型</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="ocr-config-item">
-                            <label>API Key <span class="optional">(可选)</span></label>
-                            <input type="password" id="ocrApiKey" class="ocr-input" placeholder="留空使用默认配置">
-                        </div>
-                        <button class="btn primary ocr-execute-btn" onclick="executeOcr()" id="ocrExecuteBtn">
-                            <span class="ocr-btn-icon">🚀</span>
-                            开始识别
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- 右侧：结果展示区域 -->
-                <div class="ocr-result-section">
-                    <div class="ocr-result-header">
-                        <span class="ocr-result-title">识别结果</span>
-                        <div class="ocr-result-actions">
-                            <button class="ocr-action-btn" onclick="copyOcrResult()" id="ocrCopyBtn" disabled>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                                </svg>
-                                复制
-                            </button>
-                            <button class="ocr-action-btn" onclick="saveOcrResult()" id="ocrSaveBtn" disabled>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="7 10 12 15 17 10"/>
-                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                </svg>
-                                保存
-                            </button>
-                        </div>
-                    </div>
-                    <div class="ocr-result-content" id="ocrResultContent">
-                        <div class="ocr-placeholder">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="ocr-placeholder-icon">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                <polyline points="14 2 14 8 20 8"/>
-                                <line x1="16" y1="13" x2="8" y2="13"/>
-                                <line x1="16" y1="17" x2="8" y2="17"/>
-                                <polyline points="10 9 9 9 8 9"/>
-                            </svg>
-                            <p class="ocr-placeholder-text">上传图片后开始识别</p>
-                        </div>
-                    </div>
-                    <div id="ocrDebugContainer"></div>
-                </div>
+<!-- ============ TERMINAL SECTION ============ -->
+<div id="sectionTerminal" class="section-hidden" style="flex:1;display:flex;flex-direction:column;">
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <span class="terminal-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                </svg>
+                Terminal
+            </span>
+            <span class="terminal-status" id="terminalStatus">
+                <span style="width:6px;height:6px;background:currentColor;border-radius:50%;"></span>
+                已连接
+            </span>
+            <div class="terminal-actions">
+                <button class="terminal-btn" onclick="terminalClear()" title="清屏">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                    清屏
+                </button>
+                <button class="terminal-btn" onclick="terminalReset()" title="重置">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 4v6h6M23 20v-6h-6"/>
+                        <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+                    </svg>
+                    重置
+                </button>
             </div>
         </div>
-    </div>
-    
-    <!-- 更多工具标签页 (占位) -->
-    <div id="toolsTabTools2" class="tools-tab-body">
-        <div class="tools-content">
-            <div class="state-box">
-                <div class="state-icon">🔧</div>
-                <div class="state-title">更多工具开发中</div>
-                <div class="state-msg">即将推出更多实用工具，敬请期待...</div>
-            </div>
+        <div class="terminal-quick-cmds" id="terminalQuickCmds">
+            <!-- 由 renderQuickCmds() 动态渲染 -->
+        </div>
+        <div class="terminal-body" id="terminalBody">
+            <div id="xterm"></div>
         </div>
     </div>
 </div>
@@ -1403,34 +998,28 @@
     <div class="settings-tabs">
         <button class="settings-tab active" onclick="switchSettingsTab('whitelist')">删除白名单</button>
         <button class="settings-tab" onclick="switchSettingsTab('quickpaths')">快捷路径</button>
-        <button class="settings-tab" onclick="switchSettingsTab('sysconfig')">系统配置</button>
-        <button class="settings-tab" onclick="switchSettingsTab('password')">密码修改</button>
+        <button class="settings-tab" onclick="switchSettingsTab('quickcmds')">快捷命令</button>
     </div>
     
     <div class="settings-content">
         <!-- 删除白名单标签 -->
         <div id="settingsTabWhitelist" class="settings-tab-body active">
-            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">只有白名单中的路径才允许删除操作（支持目录和单个文件）</p>
+            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">只有白名单中的路径才允许删除操作</p>
             <div style="display:flex;gap:8px;margin-bottom:16px;">
-                <input type="text" id="newWhitelistPath" class="path-input" placeholder="输入路径，如 /tmp 或 /home/test.txt" style="flex:1">
+                <input type="text" id="newWhitelistPath" class="path-input" placeholder="输入路径，如 /tmp" style="flex:1">
                 <button class="btn success" onclick="addWhitelistPathFromPanel()">添加</button>
             </div>
-            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;max-height:400px;overflow-y:auto;">
+            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;">
                 <div id="whitelistContainer">
                     <div class="state-box" style="padding:20px;">
                         <div class="state-msg">加载中...</div>
                     </div>
                 </div>
             </div>
-            <div style="margin-top:12px;">
-                <button class="btn" onclick="resetWhitelistToDefault()" style="font-size:0.8em;">恢复默认白名单</button>
-            </div>
-            <div style="margin-top:12px;padding:12px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;">
+            <div style="margin-top:16px;padding:12px;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;">
                 <div style="color:#f85149;font-weight:600;margin-bottom:6px;font-size:0.9em;">⚠️ 安全提示</div>
                 <ul style="color:#8b949e;font-size:0.8em;margin-left:14px;line-height:1.5;">
-                    <li>目录：该目录及其子目录下的所有文件都可以删除</li>
-                    <li>文件：仅该特定文件可以删除</li>
-                    <li>添加时会校验路径是否存在</li>
+                    <li>白名单路径及其子目录都可以被删除</li>
                     <li>请谨慎添加，避免误删重要文件</li>
                 </ul>
             </div>
@@ -1438,7 +1027,7 @@
         
         <!-- 快捷路径标签 -->
         <div id="settingsTabQuickpaths" class="settings-tab-body">
-            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">自定义快捷访问路径，方便快速导航（添加时会校验路径是否存在）</p>
+            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">自定义快捷访问路径，方便快速导航</p>
             <div class="quick-path-form">
                 <input type="text" id="newQuickPathInput" class="path-input" placeholder="输入路径，如 /var/log">
                 <input type="text" id="newQuickNameInput" class="path-input" placeholder="显示名称">
@@ -1456,131 +1045,23 @@
             </div>
         </div>
         
-        <!-- 系统配置标签 -->
-        <div id="settingsTabSysconfig" class="settings-tab-body">
-            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">自定义系统运行参数（修改后点击保存生效）</p>
-            
-            <!-- 会话配置 -->
-            <div style="margin-bottom:20px;">
-                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">🔐 会话配置</div>
-                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                        <label style="color:#c9d1d9;font-size:0.9em;">会话超时时间（秒）</label>
-                        <input type="number" id="configSessionTimeout" class="path-input" style="width:120px;text-align:right;" min="60" max="86400" value="3600">
-                    </div>
-                    <div style="color:#484f58;font-size:0.75em;">范围: 60-86400 秒（1分钟 - 24小时），修改后新登录生效</div>
-                </div>
+        <!-- 快捷命令标签 -->
+        <div id="settingsTabQuickcmds" class="settings-tab-body">
+            <p style="color:#8b949e;font-size:0.85em;margin-bottom:12px;">自定义终端快捷命令按钮</p>
+            <div class="quick-path-form">
+                <input type="text" id="newQuickCmdInput" class="path-input" placeholder="命令，如 ls -la">
+                <input type="text" id="newQuickCmdNameInput" class="path-input" placeholder="显示名称">
+                <button class="btn success" onclick="addQuickCmdFromPanel()">添加</button>
             </div>
-            
-            <!-- 默认权限配置 -->
-            <div style="margin-bottom:20px;">
-                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">🔒 默认权限配置</div>
-                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
-                    <div style="display:flex;gap:24px;">
-                        <label style="display:flex;align-items:center;gap:8px;color:#c9d1d9;font-size:0.9em;cursor:pointer;">
-                            <input type="checkbox" id="configDefaultRead" checked> 允许读取
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;color:#c9d1d9;font-size:0.9em;cursor:pointer;">
-                            <input type="checkbox" id="configDefaultWrite" checked> 允许写入
-                        </label>
-                    </div>
-                    <div style="color:#484f58;font-size:0.75em;margin-top:8px;">未单独配置的目录将使用此默认权限</div>
-                </div>
-            </div>
-            
-            <!-- 下载限制配置 -->
-            <div style="margin-bottom:20px;">
-                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">📦 下载限制配置</div>
-                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <label style="color:#c9d1d9;font-size:0.9em;">单文件最大大小（MB）</label>
-                        <input type="number" id="configMaxSingleFileSize" class="path-input" style="width:120px;text-align:right;" min="1" max="1024" value="100">
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <label style="color:#c9d1d9;font-size:0.9em;">批量下载最大大小（MB）</label>
-                        <input type="number" id="configMaxTotalDownloadSize" class="path-input" style="width:120px;text-align:right;" min="1" max="2048" value="200">
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <label style="color:#c9d1d9;font-size:0.9em;">ZIP 最大文件数</label>
-                        <input type="number" id="configMaxFilesInZip" class="path-input" style="width:120px;text-align:right;" min="1" max="10000" value="500">
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <label style="color:#c9d1d9;font-size:0.9em;">目录最大深度</label>
-                        <input type="number" id="configMaxDirDepth" class="path-input" style="width:120px;text-align:right;" min="1" max="100" value="20">
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <label style="color:#c9d1d9;font-size:0.9em;">文件预览最大大小（MB）</label>
-                        <input type="number" id="configMaxFilePreviewSize" class="path-input" style="width:120px;text-align:right;" min="1" max="50" value="2">
+            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;max-height:400px;overflow-y:auto;">
+                <div id="quickCmdsSettingsContainer">
+                    <div class="state-box" style="padding:20px;">
+                        <div class="state-msg">加载中...</div>
                     </div>
                 </div>
             </div>
-            
-            <!-- 配置文件直接编辑 -->
-            <div style="margin-bottom:20px;">
-                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">📝 配置文件编辑</div>
-                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                        <span style="color:#8b949e;font-size:0.8em;">直接编辑 user_config.yaml</span>
-                        <button class="btn" style="font-size:0.75em;padding:4px 10px;" onclick="loadRawConfig()">加载</button>
-                    </div>
-                    <textarea id="configRawEditor" style="width:100%;height:200px;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-family:monospace;font-size:0.85em;padding:10px;resize:vertical;box-sizing:border-box;" placeholder="# 点击"加载"获取当前配置
-# 示例:
-# session_timeout: 7200
-# default_permissions:
-#   read: true
-#   write: true
-# download_limits:
-#   max_single_file_size: 104857600
-#   max_total_download_size: 209715200
-#   max_files_in_zip: 500
-#   max_dir_depth: 20
-#   max_file_preview_size: 2097152"></textarea>
-                    <div style="margin-top:8px;display:flex;gap:8px;">
-                        <button class="btn primary" style="font-size:0.8em;" onclick="saveRawConfig()">保存配置文件</button>
-                        <button class="btn" style="font-size:0.8em;" onclick="formatRawConfig()">格式化</button>
-                    </div>
-                </div>
-                <div style="color:#484f58;font-size:0.75em;margin-top:8px;">⚠️ 直接编辑配置文件需要 YAML 格式正确，保存后立即生效</div>
-            </div>
-            
-            <!-- 操作按钮 -->
-            <div style="display:flex;gap:8px;margin-top:16px;">
-                <button class="btn primary" onclick="saveUserConfig()">保存配置</button>
-                <button class="btn" onclick="resetUserConfig()">恢复默认</button>
-                <button class="btn" onclick="loadUserConfig()">刷新</button>
-            </div>
-            
-            <div id="sysConfigMessage" style="display:none;margin-top:12px;padding:10px;border-radius:6px;font-size:0.85em;text-align:center;"></div>
-        </div>
-        
-
-        <!-- 密码修改标签 -->
-        <div id="settingsTabPassword" class="settings-tab-body">
-            <p style="color:#8b949e;font-size:0.85em;margin-bottom:16px;">修改登录密码</p>
-            <div style="max-width:320px;">
-                <div class="login-field" style="margin-bottom:16px;">
-                    <label for="oldPassword">当前密码</label>
-                    <input type="password" id="oldPassword" placeholder="输入当前密码" autocomplete="current-password">
-                </div>
-                <div class="login-field" style="margin-bottom:16px;">
-                    <label for="newPassword">新密码</label>
-                    <input type="password" id="newPassword" placeholder="输入新密码（至少4位）" autocomplete="new-password">
-                </div>
-                <div class="login-field" style="margin-bottom:20px;">
-                    <label for="confirmPassword">确认新密码</label>
-                    <input type="password" id="confirmPassword" placeholder="再次输入新密码" autocomplete="new-password">
-                </div>
-                <button class="btn primary" onclick="doChangePassword()" style="width:100%;">修改密码</button>
-                <div id="changePwdError" class="login-error" style="margin-top:12px;"></div>
-                <div id="changePwdSuccess" style="display:none;margin-top:12px;padding:10px;background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.4);border-radius:6px;color:#3fb950;font-size:0.85em;text-align:center;"></div>
-            </div>
-            <div style="margin-top:20px;padding:12px;background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.3);border-radius:8px;">
-                <div style="color:#58a6ff;font-weight:600;margin-bottom:6px;font-size:0.9em;">💡 提示</div>
-                <ul style="color:#8b949e;font-size:0.8em;margin-left:14px;line-height:1.5;">
-                    <li>新密码长度至少4位</li>
-                    <li>修改成功后需要重新登录</li>
-                    <li>请妥善保管密码</li>
-                </ul>
+            <div style="margin-top:12px;">
+                <button class="btn" onclick="resetQuickCmdsToDefault()" style="font-size:0.8em;">恢复默认快捷命令</button>
             </div>
         </div>
     </div>
@@ -1612,8 +1093,23 @@ const DEFAULT_QUICK_PATHS = [
     { path: '/etc/hosts', name: '/etc/hosts' }
 ];
 
+// 默认快捷命令配置
+const DEFAULT_QUICK_CMDS = [
+    { cmd: 'ls -la --color=auto', name: 'ls -la' },
+    { cmd: 'pwd', name: 'pwd' },
+    { cmd: 'df -h', name: 'df -h' },
+    { cmd: 'free -h', name: 'free -h' },
+    { cmd: 'top -bn1 | head -15', name: 'top' },
+    { cmd: 'ps aux --sort=-%mem | head -10', name: '内存' },
+    { cmd: 'ss -tlnp', name: '端口' },
+    { cmd: 'journalctl -u nginx -n 20 --no-pager', name: 'nginx日志' },
+    { cmd: 'docker ps -a', name: 'docker' },
+    { cmd: 'htop 2>/dev/null || top -bn1 | head -20', name: '系统' }
+];
+
 // 快捷路径缓存
 let quickPathsCache = null;
+let quickCmdsCache = null;
 
 // 获取快捷路径（从API或缓存）
 async function getQuickPaths() {
@@ -1668,330 +1164,10 @@ function switchSettingsTab(tab) {
         document.querySelector('.settings-tab:nth-child(2)').classList.add('active');
         document.getElementById('settingsTabQuickpaths').classList.add('active');
         renderQuickPathsSettings();
-    } else if (tab === 'sysconfig') {
+    } else if (tab === 'quickcmds') {
         document.querySelector('.settings-tab:nth-child(3)').classList.add('active');
-        document.getElementById('settingsTabSysconfig').classList.add('active');
-        loadUserConfig();
-    } else if (tab === 'password') {
-        document.querySelector('.settings-tab:nth-child(4)').classList.add('active');
-        document.getElementById('settingsTabPassword').classList.add('active');
-        // 清空密码表单和错误提示
-        document.getElementById('oldPassword').value = '';
-        document.getElementById('newPassword').value = '';
-        document.getElementById('confirmPassword').value = '';
-        document.getElementById('changePwdError').style.display = 'none';
-        document.getElementById('changePwdSuccess').style.display = 'none';
-    }
-}
-
-// ── 用户配置管理 ──────────────────────────────────────
-let userConfigCache = null;
-
-async function loadUserConfig() {
-    try {
-        // 并行加载表单配置和原始配置文件
-        const [configResp, rawResp] = await Promise.all([
-            fetch('/api/userconfig', { method: 'GET' }),
-            fetch('/api/userconfig/raw', { method: 'GET' })
-        ]);
-        
-        const configData = await configResp.json();
-        const rawData = await rawResp.json();
-        
-        if (configData.config) {
-            userConfigCache = configData.config;
-            // 填充表单
-            document.getElementById('configSessionTimeout').value = configData.config.session_timeout || 3600;
-            document.getElementById('configDefaultRead').checked = configData.config.default_permissions?.read !== false;
-            document.getElementById('configDefaultWrite').checked = configData.config.default_permissions?.write !== false;
-            document.getElementById('configMaxSingleFileSize').value = Math.round((configData.config.download_limits?.max_single_file_size || 104857600) / 1048576);
-            document.getElementById('configMaxTotalDownloadSize').value = Math.round((configData.config.download_limits?.max_total_download_size || 209715200) / 1048576);
-            document.getElementById('configMaxFilesInZip').value = configData.config.download_limits?.max_files_in_zip || 500;
-            document.getElementById('configMaxDirDepth').value = configData.config.download_limits?.max_dir_depth || 20;
-            document.getElementById('configMaxFilePreviewSize').value = Math.round((configData.config.download_limits?.max_file_preview_size || 2097152) / 1048576);
-        }
-        
-        // 加载原始配置文件到编辑器
-        if (rawData.content !== undefined) {
-            document.getElementById('configRawEditor').value = rawData.content;
-        }
-    } catch (e) {
-        console.error('Failed to load user config:', e);
-    }
-}
-
-async function saveUserConfig() {
-    const config = {
-        session_timeout: parseInt(document.getElementById('configSessionTimeout').value) || 3600,
-        default_permissions: {
-            read: document.getElementById('configDefaultRead').checked,
-            write: document.getElementById('configDefaultWrite').checked
-        },
-        download_limits: {
-            max_single_file_size: (parseInt(document.getElementById('configMaxSingleFileSize').value) || 100) * 1048576,
-            max_total_download_size: (parseInt(document.getElementById('configMaxTotalDownloadSize').value) || 200) * 1048576,
-            max_files_in_zip: parseInt(document.getElementById('configMaxFilesInZip').value) || 500,
-            max_dir_depth: parseInt(document.getElementById('configMaxDirDepth').value) || 20,
-            max_file_preview_size: (parseInt(document.getElementById('configMaxFilePreviewSize').value) || 2) * 1048576
-        }
-    };
-    
-    // 显示确认弹窗
-    const changes = [];
-    if (userConfigCache?.session_timeout !== config.session_timeout) {
-        changes.push(`会话超时: ${config.session_timeout} 秒`);
-    }
-    if (JSON.stringify(userConfigCache?.default_permissions) !== JSON.stringify(config.default_permissions)) {
-        changes.push(`默认权限: 读取=${config.default_permissions.read}, 写入=${config.default_permissions.write}`);
-    }
-    if (userConfigCache?.download_limits?.max_single_file_size !== config.download_limits.max_single_file_size) {
-        changes.push(`单文件限制: ${config.download_limits.max_single_file_size / 1048576} MB`);
-    }
-    if (userConfigCache?.download_limits?.max_total_download_size !== config.download_limits.max_total_download_size) {
-        changes.push(`批量下载限制: ${config.download_limits.max_total_download_size / 1048576} MB`);
-    }
-    
-    if (!confirm(`确认保存以下配置修改？\n\n${changes.length > 0 ? changes.join('\n') : '无变更'}\n\n点击确定保存配置。`)) {
-        return;
-    }
-    
-    const msgEl = document.getElementById('sysConfigMessage');
-    msgEl.style.display = 'block';
-    msgEl.style.background = 'rgba(88,166,255,0.1)';
-    msgEl.style.border = '1px solid rgba(88,166,255,0.3)';
-    msgEl.style.color = '#58a6ff';
-    msgEl.textContent = '正在保存...';
-    
-    try {
-        const resp = await fetch('/api/userconfig', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ config })
-        });
-        const data = await resp.json();
-        
-        if (data.success) {
-            userConfigCache = data.config;
-            msgEl.style.background = 'rgba(63,185,80,0.1)';
-            msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
-            msgEl.style.color = '#3fb950';
-            msgEl.textContent = '配置已保存并生效';
-            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
-        } else {
-            msgEl.style.background = 'rgba(248,81,73,0.1)';
-            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
-            msgEl.style.color = '#f85149';
-            msgEl.textContent = data.error || '保存失败';
-        }
-    } catch (e) {
-        msgEl.style.background = 'rgba(248,81,73,0.1)';
-        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
-        msgEl.style.color = '#f85149';
-        msgEl.textContent = '保存失败: ' + e.message;
-    }
-}
-
-async function resetUserConfig() {
-    if (!confirm('确认恢复默认配置？\n\n这将重置所有系统配置为默认值。')) {
-        return;
-    }
-    
-    const msgEl = document.getElementById('sysConfigMessage');
-    msgEl.style.display = 'block';
-    msgEl.style.background = 'rgba(88,166,255,0.1)';
-    msgEl.style.border = '1px solid rgba(88,166,255,0.3)';
-    msgEl.style.color = '#58a6ff';
-    msgEl.textContent = '正在重置...';
-    
-    try {
-        const resp = await fetch('/api/userconfig/reset', { method: 'POST' });
-        const data = await resp.json();
-        
-        if (data.success) {
-            userConfigCache = {};
-            document.getElementById('configSessionTimeout').value = 3600;
-            document.getElementById('configDefaultRead').checked = true;
-            document.getElementById('configDefaultWrite').checked = true;
-            document.getElementById('configMaxSingleFileSize').value = 100;
-            document.getElementById('configMaxTotalDownloadSize').value = 200;
-            document.getElementById('configMaxFilesInZip').value = 500;
-            document.getElementById('configMaxDirDepth').value = 20;
-            document.getElementById('configMaxFilePreviewSize').value = 2;
-            
-            // 同时清空编辑器
-            document.getElementById('configRawEditor').value = '';
-            
-            msgEl.style.background = 'rgba(63,185,80,0.1)';
-            msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
-            msgEl.style.color = '#3fb950';
-            msgEl.textContent = '配置已重置为默认值';
-            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
-        } else {
-            msgEl.style.background = 'rgba(248,81,73,0.1)';
-            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
-            msgEl.style.color = '#f85149';
-            msgEl.textContent = data.error || '重置失败';
-        }
-    } catch (e) {
-        msgEl.style.background = 'rgba(248,81,73,0.1)';
-        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
-        msgEl.style.color = '#f85149';
-        msgEl.textContent = '重置失败: ' + e.message;
-    }
-}
-
-// ── 原始配置文件编辑 ──────────────────────────────────
-async function loadRawConfig() {
-    const msgEl = document.getElementById('sysConfigMessage');
-    try {
-        const resp = await fetch('/api/userconfig/raw', { method: 'GET' });
-        const data = await resp.json();
-        if (data.content !== undefined) {
-            document.getElementById('configRawEditor').value = data.content;
-            msgEl.style.display = 'block';
-            msgEl.style.background = 'rgba(63,185,80,0.1)';
-            msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
-            msgEl.style.color = '#3fb950';
-            msgEl.textContent = '配置文件已加载';
-            setTimeout(() => { msgEl.style.display = 'none'; }, 2000);
-        } else {
-            msgEl.style.display = 'block';
-            msgEl.style.background = 'rgba(248,81,73,0.1)';
-            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
-            msgEl.style.color = '#f85149';
-            msgEl.textContent = data.error || '加载失败';
-        }
-    } catch (e) {
-        msgEl.style.display = 'block';
-        msgEl.style.background = 'rgba(248,81,73,0.1)';
-        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
-        msgEl.style.color = '#f85149';
-        msgEl.textContent = '加载失败: ' + e.message;
-    }
-}
-
-async function saveRawConfig() {
-    const content = document.getElementById('configRawEditor').value;
-    
-    if (!confirm('确认保存配置文件？\n\n配置将立即生效，请确保 YAML 格式正确。')) {
-        return;
-    }
-    
-    const msgEl = document.getElementById('sysConfigMessage');
-    msgEl.style.display = 'block';
-    msgEl.style.background = 'rgba(88,166,255,0.1)';
-    msgEl.style.border = '1px solid rgba(88,166,255,0.3)';
-    msgEl.style.color = '#58a6ff';
-    msgEl.textContent = '正在保存...';
-    
-    try {
-        const resp = await fetch('/api/userconfig/raw', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content })
-        });
-        const data = await resp.json();
-        
-        if (data.success) {
-            msgEl.style.background = 'rgba(63,185,80,0.1)';
-            msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
-            msgEl.style.color = '#3fb950';
-            msgEl.textContent = '配置文件已保存并生效';
-            
-            // 同步更新表单
-            await loadUserConfig();
-            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
-        } else {
-            msgEl.style.background = 'rgba(248,81,73,0.1)';
-            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
-            msgEl.style.color = '#f85149';
-            msgEl.textContent = data.error || '保存失败';
-        }
-    } catch (e) {
-        msgEl.style.background = 'rgba(248,81,73,0.1)';
-        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
-        msgEl.style.color = '#f85149';
-        msgEl.textContent = '保存失败: ' + e.message;
-    }
-}
-
-function formatRawConfig() {
-    const editor = document.getElementById('configRawEditor');
-    const content = editor.value.trim();
-    
-    if (!content) {
-        return;
-    }
-    
-    try {
-        const parsed = jsyaml.load(content);
-        editor.value = jsyaml.dump(parsed, { indent: 2, lineWidth: -1 });
-    } catch (e) {
-        // 如果 jsyaml 未加载，使用简单格式化
-        document.getElementById('sysConfigMessage').style.display = 'block';
-        document.getElementById('sysConfigMessage').style.background = 'rgba(248,81,73,0.1)';
-        document.getElementById('sysConfigMessage').style.border = '1px solid rgba(248,81,73,0.3)';
-        document.getElementById('sysConfigMessage').style.color = '#f85149';
-        document.getElementById('sysConfigMessage').textContent = 'YAML 格式错误: ' + e.message;
-    }
-}
-
-// 修改密码
-async function doChangePassword() {
-    const oldPwd = document.getElementById('oldPassword').value;
-    const newPwd = document.getElementById('newPassword').value;
-    const confirmPwd = document.getElementById('confirmPassword').value;
-    const errorEl = document.getElementById('changePwdError');
-    const successEl = document.getElementById('changePwdSuccess');
-    
-    errorEl.style.display = 'none';
-    successEl.style.display = 'none';
-    
-    if (!oldPwd || !newPwd || !confirmPwd) {
-        errorEl.textContent = '请填写所有字段';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    if (newPwd.length < 4) {
-        errorEl.textContent = '新密码长度至少4位';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    if (newPwd !== confirmPwd) {
-        errorEl.textContent = '两次输入的新密码不一致';
-        errorEl.style.display = 'block';
-        return;
-    }
-    
-    try {
-        const resp = await fetch('/api/changepwd', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
-        });
-        const data = await resp.json();
-        
-        if (resp.ok && data.success) {
-            successEl.textContent = data.message || '密码修改成功';
-            successEl.style.display = 'block';
-            // 清空表单
-            document.getElementById('oldPassword').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
-            // 3秒后重新登录
-            setTimeout(() => {
-                closeSettingsPanel();
-                doLogout();
-            }, 2000);
-        } else {
-            errorEl.textContent = data.error || '修改失败';
-            errorEl.style.display = 'block';
-        }
-    } catch (e) {
-        errorEl.textContent = '网络错误：' + e.message;
-        errorEl.style.display = 'block';
+        document.getElementById('settingsTabQuickcmds').classList.add('active');
+        renderQuickCmdsSettings();
     }
 }
 
@@ -2007,37 +1183,13 @@ async function renderQuickPathsSettings() {
     
     container.innerHTML = paths.map((p, i) => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #21262d;">
-            <div style="flex:1;min-width:0;cursor:pointer;" onclick="editQuickPath(${i})">
+            <div style="flex:1;min-width:0;">
                 <div style="color:#e6edf3;font-size:0.9em;">${escHtml(p.name)}</div>
                 <div style="color:#8b949e;font-size:0.78em;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(p.path)}</div>
             </div>
-            <div style="display:flex;gap:8px;">
-                <button class="action-btn" style="color:#58a6ff;" onclick="editQuickPath(${i})">修改</button>
-                <button class="action-btn" style="color:#f85149;" onclick="removeQuickPath(${i})">删除</button>
-            </div>
+            <button class="action-btn" style="color:#f85149;margin-left:12px;" onclick="removeQuickPath(${i})">删除</button>
         </div>
     `).join('');
-}
-
-// 编辑快捷路径
-async function editQuickPath(index) {
-    const paths = await getQuickPaths();
-    const item = paths[index];
-    const newName = prompt('显示名称:', item.name);
-    if (newName === null) return;
-    const newPath = prompt('路径:', item.path);
-    if (newPath === null) return;
-    
-    if (!newPath.trim()) {
-        showToast('路径不能为空', 'error');
-        return;
-    }
-    
-    paths[index] = { path: newPath.trim(), name: newName.trim() || newPath.trim() };
-    await saveQuickPaths(paths);
-    renderQuickPathsSettings();
-    renderQuickPaths();
-    showToast('快捷路径已修改', 'success');
 }
 
 // 添加快捷路径
@@ -2049,24 +1201,6 @@ async function addQuickPathFromPanel() {
     
     if (!path) {
         showToast('请输入路径', 'error');
-        return;
-    }
-    
-    // 校验路径是否存在
-    try {
-        const checkResp = await fetch('/api/file?path=' + encodeURIComponent(path));
-        if (!checkResp.ok) {
-            if (checkResp.status === 404) {
-                showToast('路径不存在: ' + path, 'error');
-            } else if (checkResp.status === 403) {
-                showToast('无权限访问: ' + path, 'error');
-            } else {
-                showToast('路径验证失败', 'error');
-            }
-            return;
-        }
-    } catch (e) {
-        showToast('路径验证失败: ' + e.message, 'error');
         return;
     }
     
@@ -2109,6 +1243,122 @@ async function resetQuickPathsToDefault() {
     }
 }
 
+// ── 快捷命令管理 ────────────────────────────────────
+
+// 获取快捷命令（从API或缓存）
+async function getQuickCmds() {
+    if (quickCmdsCache !== null) return quickCmdsCache;
+    try {
+        const resp = await fetch('/api/quickcmds', { method: 'GET' });
+        const data = await resp.json();
+        quickCmdsCache = data.quick_cmds || DEFAULT_QUICK_CMDS;
+        return quickCmdsCache;
+    } catch {
+        return DEFAULT_QUICK_CMDS;
+    }
+}
+
+// 保存快捷命令到服务器
+async function saveQuickCmds(cmds) {
+    try {
+        const resp = await fetch('/api/quickcmds', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quick_cmds: cmds })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            quickCmdsCache = cmds;
+            return true;
+        }
+    } catch {}
+    return false;
+}
+
+// 渲染终端快捷命令按钮
+async function renderQuickCmds() {
+    const cmds = await getQuickCmds();
+    const container = document.getElementById('terminalQuickCmds');
+    if (!container) return;
+    
+    const html = cmds.map(c => 
+        `<button class="quick-cmd-btn" onclick="termExec('${c.cmd.replace(/'/g, "\\'")}')">${escHtml(c.name)}</button>`
+    ).join('');
+    
+    container.innerHTML = '<span class="quick-cmd-label">快捷命令：</span>' + html;
+}
+
+// 渲染快捷命令设置列表
+async function renderQuickCmdsSettings() {
+    const cmds = await getQuickCmds();
+    const container = document.getElementById('quickCmdsSettingsContainer');
+    
+    if (cmds.length === 0) {
+        container.innerHTML = `<div class="state-box" style="padding:20px;"><div class="state-msg">暂无快捷命令</div></div>`;
+        return;
+    }
+    
+    container.innerHTML = cmds.map((c, i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #21262d;">
+            <div style="flex:1;min-width:0;">
+                <div style="color:#e6edf3;font-size:0.9em;">${escHtml(c.name)}</div>
+                <div style="color:#8b949e;font-size:0.78em;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(c.cmd)}</div>
+            </div>
+            <button class="action-btn" style="color:#f85149;margin-left:12px;" onclick="removeQuickCmd(${i})">删除</button>
+        </div>
+    `).join('');
+}
+
+// 添加快捷命令
+async function addQuickCmdFromPanel() {
+    const cmdInput = document.getElementById('newQuickCmdInput');
+    const nameInput = document.getElementById('newQuickCmdNameInput');
+    const cmd = cmdInput.value.trim();
+    const name = nameInput.value.trim() || cmd;
+    
+    if (!cmd) {
+        showNotification('请输入命令', 'error');
+        return;
+    }
+    
+    const cmds = await getQuickCmds();
+    
+    // 检查是否已存在
+    if (cmds.some(c => c.cmd === cmd)) {
+        showNotification('该命令已存在', 'error');
+        return;
+    }
+    
+    cmds.push({ cmd, name });
+    await saveQuickCmds(cmds);
+    
+    cmdInput.value = '';
+    nameInput.value = '';
+    
+    renderQuickCmdsSettings();
+    renderQuickCmds();
+    showNotification('快捷命令已添加', 'success');
+}
+
+// 删除快捷命令
+async function removeQuickCmd(index) {
+    const cmds = await getQuickCmds();
+    cmds.splice(index, 1);
+    await saveQuickCmds(cmds);
+    renderQuickCmdsSettings();
+    renderQuickCmds();
+    showNotification('快捷命令已删除', 'success');
+}
+
+// 恢复默认快捷命令
+async function resetQuickCmdsToDefault() {
+    if (confirm('确定要恢复默认快捷命令吗？这将覆盖当前配置。')) {
+        await saveQuickCmds(DEFAULT_QUICK_CMDS);
+        renderQuickCmdsSettings();
+        renderQuickCmds();
+        showNotification('已恢复默认快捷命令', 'success');
+    }
+}
 
 // 获取文件类型的友好显示名称
 function getFileTypeName(name, isDir) {
@@ -2192,10 +1442,10 @@ function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
     document.getElementById('tabMonitor').classList.toggle('active', tab === 'monitor');
-    document.getElementById('tabTools').classList.toggle('active', tab === 'tools');
+    document.getElementById('tabTerminal').classList.toggle('active', tab === 'terminal');
     const sf = document.getElementById('sectionFiles');
     const sm = document.getElementById('sectionMonitor');
-    const st = document.getElementById('sectionTools');
+    const st = document.getElementById('sectionTerminal');
     if (tab === 'files') {
         sf.classList.remove('section-hidden');
         sm.classList.add('section-hidden');
@@ -2207,298 +1457,18 @@ function switchTab(tab) {
         st.classList.add('section-hidden');
         sm.style.display = 'flex';
         startMonitor();
-    } else if (tab === 'tools') {
+    } else if (tab === 'terminal') {
         sf.classList.add('section-hidden');
         sm.classList.add('section-hidden');
         st.classList.remove('section-hidden');
         st.style.display = 'flex';
         stopMonitor();
-        loadOcrModels();
-    }
-}
-
-// Tools Tab Functions
-function switchToolsTab(tab) {
-    document.querySelectorAll('.tools-tab').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tools-tab-body').forEach(body => body.classList.remove('active'));
-    
-    if (tab === 'ocr') {
-        document.querySelector('.tools-tab:nth-child(1)').classList.add('active');
-        document.getElementById('toolsTabOcr').classList.add('active');
-    } else if (tab === 'tools2') {
-        document.querySelector('.tools-tab:nth-child(2)').classList.add('active');
-        document.getElementById('toolsTabTools2').classList.add('active');
-    }
-}
-
-// OCR Functions
-let ocrImageData = '';
-let ocrLastResult = '';
-let ocrModels = [];
-
-async function loadOcrModels() {
-    try {
-        const res = await fetch('/api/ai/models');
-        if (res.ok) {
-            ocrModels = await res.json();
-            const select = document.getElementById('ocrModelSelect');
-            select.innerHTML = '<option value="">选择模型</option>';
-            ocrModels.filter(m => m.id && (
-                m.id.includes('OCR') || 
-                m.id.includes('PaddleOCR') || 
-                m.id.includes('VL') || 
-                m.id.toLowerCase().includes('ocr')
-            )).forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.id;
-                opt.textContent = m.name;
-                select.appendChild(opt);
-            });
-        }
-    } catch (e) {
-        console.error('Failed to load OCR models:', e);
-    }
-    
-    // 设置拖拽事件
-    const dropZone = document.getElementById('ocrDropZone');
-    if (dropZone && !dropZone.hasAttribute('data-drag-init')) {
-        dropZone.setAttribute('data-drag-init', 'true');
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                handleOcrFile({ files: [file] });
-            }
-        });
-    }
-}
-
-function handleOcrFile(input) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        ocrImageData = e.target.result.split(',')[1];
-        
-        document.getElementById('ocrPreview').innerHTML = `
-            <img src="${e.target.result}" class="ocr-preview-img">
-            <p class="ocr-preview-name">${escHtml(file.name)}</p>
-        `;
-    };
-    reader.readAsDataURL(file);
-}
-
-async function executeOcr() {
-    if (!ocrImageData) {
-        showToast('请先上传图片', 'error');
-        return;
-    }
-
-    const mode = document.getElementById('ocrMode').value;
-    const model = document.getElementById('ocrModelInput').value || 'deepseek-ai/DeepSeek-OCR';
-    const apiKey = document.getElementById('ocrApiKey').value;
-
-    const btn = document.getElementById('ocrExecuteBtn');
-    const resultDiv = document.getElementById('ocrResultContent');
-    const copyBtn = document.getElementById('ocrCopyBtn');
-    const saveBtn = document.getElementById('ocrSaveBtn');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<span class="ocr-btn-icon">⏳</span> 识别中...';
-    resultDiv.innerHTML = '<div style="color:#8b949e;text-align:center;padding:40px;">正在进行 OCR 识别，请稍候...</div>';
-    document.getElementById('ocrDebugContainer').innerHTML = '';
-
-    const requestData = {
-        image: ocrImageData,
-        prompt_type: mode,
-        model: model
-    };
-    
-    if (apiKey && !apiKey.includes('*')) {
-        requestData.api_key = apiKey;
-    }
-
-    try {
-        const res = await fetch('/api/ai/ocr', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
-        });
-
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-            ocrLastResult = data.output;
-            
-            // 渲染结果
-            let resultHtml = '';
-            
-            // 识别结果
-            if (mode === 'markdown') {
-                const lines = data.output.split('\n').filter(line => line.trim());
-                lines.forEach(line => {
-                    const trimmed = line.trim();
-                    if (trimmed) {
-                        let tag = '';
-                        let content = escHtml(trimmed);
-                        let itemClass = '';
-                        
-                        if (trimmed.startsWith('## ')) {
-                            tag = '<span class="ocr-type-tag">标题</span>';
-                            content = escHtml(trimmed.replace(/^##+\s*/, ''));
-                            itemClass = 'ocr-title';
-                        } else if (trimmed.startsWith('# ')) {
-                            tag = '<span class="ocr-type-tag">主标题</span>';
-                            content = escHtml(trimmed.replace(/^#+\s*/, ''));
-                            itemClass = 'ocr-title';
-                        }
-                        
-                        resultHtml += `<div class="ocr-result-item ${itemClass}">${tag}${content}</div>`;
-                    }
-                });
-                resultHtml = resultHtml || '<div style="color:#8b949e;text-align:center;padding:20px;">无识别结果</div>';
-            } else {
-                resultHtml = escHtml(data.output) || '<div style="color:#8b949e;text-align:center;padding:20px;">无识别结果</div>';
-            }
-            
-            // 调试信息面板
-            let debugHtml = '';
-            if (data.debug) {
-                debugHtml = `
-                    <div class="ocr-debug-panel">
-                        <div class="ocr-debug-header" onclick="toggleOcrDebug()">
-                            <span>🔧 调试信息</span>
-                            <svg id="ocrDebugArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.2s;">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </div>
-                        <div id="ocrDebugContent" class="ocr-debug-content" style="display:none;">
-                            <div class="ocr-debug-section">
-                                <div class="ocr-debug-title">📤 请求参数</div>
-                                <div class="ocr-debug-grid">
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">URL:</span><span class="ocr-debug-value">${escHtml(data.debug.request.url)}</span></div>
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Model:</span><span class="ocr-debug-value">${escHtml(data.debug.request.model)}</span></div>
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Mode:</span><span class="ocr-debug-value">${escHtml(data.debug.request.prompt_type)}</span></div>
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Prompt:</span><span class="ocr-debug-value">${escHtml(data.debug.request.prompt)}</span></div>
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Image:</span><span class="ocr-debug-value">${data.debug.request.image_size} bytes</span></div>
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">API Key:</span><span class="ocr-debug-value">${escHtml(data.debug.request.api_key)}</span></div>
-                                </div>
-                            </div>
-                            <div class="ocr-debug-section">
-                                <div class="ocr-debug-title">📥 响应参数</div>
-                                <div class="ocr-debug-grid">
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Status:</span><span class="ocr-debug-value" style="color:#4ade80;">${data.debug.response.status}</span></div>
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Model:</span><span class="ocr-debug-value">${escHtml(data.debug.response.model)}</span></div>
-                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Length:</span><span class="ocr-debug-value">${data.debug.response.content_length} chars</span></div>
-                                    ${data.debug.response.usage ? `<div class="ocr-debug-row"><span class="ocr-debug-label">Usage:</span><span class="ocr-debug-value">${JSON.stringify(data.debug.response.usage)}</span></div>` : ''}
-                                </div>
-                            </div>
-                            <div class="ocr-debug-section">
-                                <div class="ocr-debug-title">📄 Raw 响应</div>
-                                <div class="ocr-debug-raw">${escHtml(data.raw || '')}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            // 渲染识别结果
-            resultDiv.innerHTML = resultHtml;
-            
-            // 渲染调试信息到独立容器
-            const debugContainer = document.getElementById('ocrDebugContainer');
-            debugContainer.innerHTML = debugHtml;
-            
-            copyBtn.disabled = false;
-            saveBtn.disabled = false;
-            showToast('识别完成', 'success');
-            
-            if (apiKey && !apiKey.includes('*')) {
-                document.getElementById('ocrApiKey').value = '';
-                document.getElementById('ocrApiKey').placeholder = '已配置 (留空使用已保存配置)';
-            }
+        // 初始化xterm终端
+        if (!term) {
+            setTimeout(() => initTerminal(), 100);
         } else {
-            resultDiv.innerHTML = `<div style="color:#f85149;">识别失败: ${escHtml(data.error || '未知错误')}</div>`;
-            document.getElementById('ocrDebugContainer').innerHTML = '';
-            showToast('识别失败', 'error');
+            setTimeout(() => termFit && termFit.fit(), 100);
         }
-    } catch (e) {
-        resultDiv.innerHTML = `<div style="color:#f85149;">网络错误: ${escHtml(e.message)}</div>`;
-        document.getElementById('ocrDebugContainer').innerHTML = '';
-        showToast('网络错误', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<span class="ocr-btn-icon">🚀</span> 开始识别';
-    }
-}
-
-function copyOcrResult() {
-    if (!ocrLastResult) {
-        showToast('暂无结果可复制', 'error');
-        return;
-    }
-    
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(ocrLastResult).then(() => {
-            showToast('已复制到剪贴板', 'success');
-        }).catch(() => {
-            fallbackCopy(ocrLastResult);
-        });
-    } else {
-        fallbackCopy(ocrLastResult);
-    }
-}
-
-function fallbackCopy(text) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-        document.execCommand('copy');
-        showToast('已复制到剪贴板', 'success');
-    } catch (e) {
-        showToast('复制失败，请手动复制', 'error');
-    }
-    document.body.removeChild(textarea);
-}
-
-function saveOcrResult() {
-    if (!ocrLastResult) {
-        showToast('暂无结果可保存', 'error');
-        return;
-    }
-    
-    const blob = new Blob([ocrLastResult], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ocr_result_${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('结果已保存', 'success');
-}
-
-function toggleOcrDebug() {
-    const content = document.getElementById('ocrDebugContent');
-    const arrow = document.getElementById('ocrDebugArrow');
-    if (content.style.display === 'none') {
-        content.style.display = 'block';
-        arrow.style.transform = 'rotate(180deg)';
-    } else {
-        content.style.display = 'none';
-        arrow.style.transform = 'rotate(0deg)';
     }
 }
 
@@ -2528,8 +1498,7 @@ async function addWhitelistPathFromPanel() {
         if (resp.ok) {
             input.value = '';
             renderWhitelist(data.whitelist);
-            const typeInfo = data.type ? ` (${data.type})` : '';
-            showNotification('添加成功' + typeInfo, 'success');
+            showNotification('添加成功', 'success');
         } else {
             showNotification(data.error || '添加失败', 'error');
         }
@@ -2540,7 +1509,7 @@ async function addWhitelistPathFromPanel() {
 
 function initFromUrl() {
     if (location.hash && location.hash.length > 1) {
-        const path = location.hash.slice(1);
+        const path = decodeURIComponent(location.hash.slice(1));
         document.getElementById('pathInput').value = path;
         return true;
     }
@@ -2594,13 +1563,7 @@ function hideLogin() {
     document.getElementById('loginOverlay').classList.remove('visible');
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginError').classList.remove('visible');
-    if (initFromUrl()) {
-        loadPathWithoutPush();
-    } else {
-        // 首次登录没有 hash 时，默认加载根目录
-        document.getElementById('pathInput').value = '/';
-        loadPathWithoutPush();
-    }
+    if (initFromUrl()) loadPathWithoutPush();
 }
 
 async function doLogin() {
@@ -2661,16 +1624,6 @@ function buildBreadcrumb(path) {
     bc.innerHTML = html;
 }
 
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = 'toast ' + type;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function formatSize(n) {
@@ -2708,7 +1661,7 @@ async function loadPath() {
         }
         if (data.type === 'directory') renderDir(data);
         else { currentFileData = data; renderFile(data); }
-        history.pushState({path: raw}, '', '#' + raw);
+        history.pushState({path: raw}, '', '#' + encodeURIComponent(raw));
     } catch (e) { hideLoading(); showError(0, '网络错误：' + e.message, raw); }
 }
 
@@ -2927,11 +1880,8 @@ function renderDir(data) {
         
         const permDisplay = `<span class="perm-link" style="font-family:monospace;font-size:0.82em;cursor:pointer;color:#58a6ff" onclick="showChmodModal('${fullPath.replace(/'/g, "\\'")}', '${octalStr}', '${escHtml(e.name)}')">${escHtml(modeStr)}</span>`;
         
-        // 操作按钮：下载按钮 + 重命名按钮 + 删除按钮（如果在白名单中）
+        // 操作按钮：下载按钮 + 删除按钮（如果在白名单中）
         let actions = `<button class="action-btn btn-download-row" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')" title="下载">⬇ 下载</button>`;
-        if (canWrite) {
-            actions += `<button class="action-btn" onclick="event.stopPropagation();showRenameModal('${fullPath.replace(/'/g, "\\'")}', '${escHtml(e.name).replace(/'/g, "\\'")}')" title="重命名">✏️ 重命名</button>`;
-        }
         if (entryCanDelete) {
             actions += `<button class="action-btn" style="color:#f85149;" onclick="event.stopPropagation();deleteSingleItem('${fullPath.replace(/'/g, "\\'")}')" title="删除">🗑 删除</button>`;
         }
@@ -2964,9 +1914,6 @@ function renderDir(data) {
         
         // 操作按钮
         let actionBtns = `<button class="file-card-btn btn-download" onclick="event.stopPropagation();downloadFile('${fullPath.replace(/'/g, "\\'")}')">下载</button>`;
-        if (canWrite) {
-            actionBtns += `<button class="file-card-btn" onclick="event.stopPropagation();showRenameModal('${fullPath.replace(/'/g, "\\'")}', '${escHtml(e.name).replace(/'/g, "\\'")}')">重命名</button>`;
-        }
         if (entryCanDelete) {
             actionBtns += `<button class="file-card-btn btn-delete" onclick="event.stopPropagation();deleteSingleItem('${fullPath.replace(/'/g, "\\'")}')">删除</button>`;
         }
@@ -3210,61 +2157,6 @@ async function doChmod() {
     } catch (e) { showNotification('修改失败: ' + e.message, 'error'); }
 }
 
-// ── Rename Modal ───────────────────────────────────
-
-let renameTargetPath = '';
-
-function showRenameModal(path, name) {
-    renameTargetPath = path;
-    const typeLabel = name.includes('.') && !name.startsWith('.') ? '文件' : '项目';
-    document.getElementById('modalTitle').textContent = '重命名';
-    document.getElementById('modalContent').innerHTML = `
-        <div class="modal-field"><label>当前名称</label><input type="text" value="${escHtml(name)}" readonly /></div>
-        <div class="modal-field"><label>新名称</label><input type="text" id="renameNewName" value="${escHtml(name)}" placeholder="输入新名称" autocomplete="off" /></div>
-        <div class="modal-field"><label>位置</label><input type="text" value="${escHtml(path.replace(/\/[^/]+$/, ''))}" readonly /></div>
-        <div class="modal-actions">
-            <button class="modal-btn modal-btn-cancel" onclick="closeModal()">取消</button>
-            <button class="modal-btn modal-btn-primary" onclick="doRename()">确认</button>
-        </div>
-    `;
-    openModal();
-    setTimeout(() => {
-        const input = document.getElementById('renameNewName');
-        input.focus();
-        input.select();
-    }, 50);
-}
-
-async function doRename() {
-    const newName = document.getElementById('renameNewName').value.trim();
-    if (!newName) {
-        showNotification('请输入新名称', 'error');
-        return;
-    }
-    if (newName.includes('/') || newName.includes('\\')) {
-        showNotification('名称不能包含路径分隔符', 'error');
-        return;
-    }
-    try {
-        const resp = await fetch('/api/file/rename', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: renameTargetPath, new_name: newName })
-        });
-        const result = await resp.json();
-        if (resp.ok) {
-            closeModal();
-            showNotification('重命名成功', 'success');
-            document.getElementById('pathInput').value = currentDirPath;
-            loadPathWithoutPush();
-        } else {
-            showNotification(result.error || '重命名失败', 'error');
-        }
-    } catch (e) {
-        showNotification('重命名失败: ' + e.message, 'error');
-    }
-}
-
 // ── Upload ───────────────────────────────────
 
 let selectedFilesList = [];
@@ -3349,45 +2241,16 @@ function renderWhitelist(whitelist) {
         container.innerHTML = `<div class="state-box" style="padding:20px;"><div class="state-msg" style="color:#8b949e;">白名单为空，删除功能将被禁用</div></div>`;
         return;
     }
-    const items = whitelist.map((item, idx) => {
-        // 兼容新旧格式
-        const path = typeof item === 'string' ? item : item.path;
-        const type = typeof item === 'object' ? item.type : null;
-        const typeLabel = type === 'file' ? '<span style="background:rgba(88,166,255,0.15);color:#58a6ff;padding:1px 6px;border-radius:4px;font-size:0.75em;margin-left:8px;">文件</span>' :
-                          type === 'dir' ? '<span style="background:rgba(63,185,80,0.15);color:#3fb950;padding:1px 6px;border-radius:4px;font-size:0.75em;margin-left:8px;">目录</span>' :
-                          type === 'unknown' ? '<span style="background:rgba(139,148,158,0.15);color:#8b949e;padding:1px 6px;border-radius:4px;font-size:0.75em;margin-left:8px;">不存在</span>' : '';
-        return `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #21262d;">
-                <span style="font-family:monospace;color:#58a6ff;flex:1;font-size:0.88em;">${escHtml(path)}${typeLabel}</span>
-                <button class="action-btn" style="color:#f85149;" onclick="removeWhitelistPath('${escHtml(path).replace(/'/g, "\\'")}')" title="移除">删除</button>
-            </div>
-        `;
-    }).join('');
+    const items = whitelist.map((path, idx) => `
+        <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #21262d;">
+            <span style="font-family:monospace;color:#58a6ff;flex:1;font-size:0.88em;">${escHtml(path)}</span>
+            <button class="action-btn" style="color:#f85149;" onclick="removeWhitelistPath('${escHtml(path).replace(/'/g, "\\'")}')" title="移除">移除</button>
+        </div>
+    `).join('');
     container.innerHTML = items;
 }
 
-// 恢复默认白名单
-async function resetWhitelistToDefault() {
-    if (confirm('确定要恢复默认白名单吗？这将覆盖当前配置。')) {
-        const defaultWhitelist = ['/tmp', '/var/tmp'];
-        try {
-            const resp = await fetch('/api/whitelist', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'set', whitelist: defaultWhitelist })
-            });
-            const data = await resp.json();
-            if (resp.ok) {
-                renderWhitelist(data.whitelist);
-                showNotification('已恢复默认白名单', 'success');
-            } else {
-                showNotification(data.error || '恢复失败', 'error');
-            }
-        } catch (e) {
-            showNotification('恢复失败: ' + e.message, 'error');
-        }
-    }
-}
+
 
 async function removeWhitelistPath(path) {
     try {
@@ -3477,13 +2340,423 @@ function renderMonitor(d) {
     document.getElementById('monitorContent').innerHTML = html;
 }
 
+// ── Terminal (xterm.js) ────────────────────────────────
 
+let term = null;
+let termFit = null;
+let termCwd = '/';
+let termHistory = [];
+let termHistoryIndex = -1;
+let termCurrentLine = '';
+let termCursorPos = 0;
+
+const TERM_PROMPT = () => `\x1b[1;32mroot\x1b[0m@\x1b[1;34m${window.location.hostname || 'server'}\x1b[0m:\x1b[1;36m${termCwd}\x1b[0m$ `;
+
+function initTerminal() {
+    const container = document.getElementById('xterm');
+    if (!container || term) return;
+    
+    term = new Terminal({
+        fontFamily: '"Cascadia Code", "Fira Code", "Consolas", monospace',
+        fontSize: 14,
+        lineHeight: 1.2,
+        theme: {
+            background: '#0d1117',
+            foreground: '#c9d1d9',
+            cursor: '#58a6ff',
+            cursorAccent: '#0d1117',
+            selectionBackground: 'rgba(88, 166, 255, 0.3)',
+            black: '#0d1117',
+            red: '#f85149',
+            green: '#3fb950',
+            yellow: '#f0883e',
+            blue: '#58a6ff',
+            magenta: '#bc8cff',
+            cyan: '#39c5cf',
+            white: '#c9d1d9',
+            brightBlack: '#484f58',
+            brightRed: '#f85149',
+            brightGreen: '#3fb950',
+            brightYellow: '#f0883e',
+            brightBlue: '#58a6ff',
+            brightMagenta: '#bc8cff',
+            brightCyan: '#39c5cf',
+            brightWhite: '#e6edf3'
+        },
+        cursorBlink: true,
+        cursorStyle: 'block',
+        scrollback: 5000,
+        allowTransparency: true
+    });
+    
+    termFit = new FitAddon.FitAddon();
+    term.loadAddon(termFit);
+    
+    term.open(container);
+    
+    // 欢迎信息
+    term.writeln('\x1b[1;34m╔══════════════════════════════════════════════╗\x1b[0m');
+    term.writeln('\x1b[1;34m║\x1b[0m     \x1b[1;32mWeb Terminal\x1b[0m - Linux Shell Emulator      \x1b[1;34m║\x1b[0m');
+    term.writeln('\x1b[1;34m╚══════════════════════════════════════════════╝\x1b[0m');
+    term.writeln('');
+    term.writeln('  \x1b[90m•\x1b[0m 输入命令后按 \x1b[1;33mEnter\x1b[0m 执行');
+    term.writeln('  \x1b[90m•\x1b[0m 使用 \x1b[1;33m↑/↓\x1b[0m 浏览历史命令');
+    term.writeln('  \x1b[90m•\x1b[0m 使用 \x1b[1;33mCtrl+L\x1b[0m 清屏');
+    term.writeln('  \x1b[90m•\x1b[0m 部分危险命令已被禁止');
+    term.writeln('');
+    
+    writePrompt();
+    
+    // 键盘事件处理
+    term.onKey(({ key, domEvent }) => {
+        const ev = domEvent;
+        
+        if (ev.ctrlKey && ev.key === 'l') {
+            // Ctrl+L 清屏
+            ev.preventDefault();
+            term.clear();
+            writePrompt();
+            return;
+        }
+        
+        if (ev.ctrlKey && ev.key === 'c') {
+            // Ctrl+C 取消当前行
+            term.writeln('^C');
+            termCurrentLine = '';
+            writePrompt();
+            return;
+        }
+        
+        if (ev.ctrlKey && ev.key === 'u') {
+            // Ctrl+U 清除到行首
+            const cleared = termCurrentLine.substring(0, termCursorPos);
+            termCurrentLine = termCurrentLine.substring(termCursorPos);
+            termCursorPos = 0;
+            term.write('\r' + ' '.repeat(cleared.length + TERM_PROMPT().length - 27) + '\r');
+            writePrompt();
+            term.write(termCurrentLine);
+            return;
+        }
+        
+        if (ev.ctrlKey && ev.key === 'a') {
+            // Ctrl+A 移到行首
+            term.write(`\x1b[${termCursorPos + TERM_PROMPT().length - 27}G`);
+            termCursorPos = 0;
+            return;
+        }
+        
+        if (ev.ctrlKey && ev.key === 'e') {
+            // Ctrl+E 移到行尾
+            term.write(`\x1b[${termCurrentLine.length + TERM_PROMPT().length - 27}G`);
+            termCursorPos = termCurrentLine.length;
+            return;
+        }
+        
+        switch (ev.key) {
+            case 'Enter':
+                term.writeln('');
+                executeTermCommand(termCurrentLine);
+                termCurrentLine = '';
+                termCursorPos = 0;
+                break;
+                
+            case 'Backspace':
+                if (termCursorPos > 0) {
+                    termCurrentLine = termCurrentLine.slice(0, termCursorPos - 1) + termCurrentLine.slice(termCursorPos);
+                    termCursorPos--;
+                    redrawLine();
+                }
+                break;
+                
+            case 'Delete':
+                if (termCursorPos < termCurrentLine.length) {
+                    termCurrentLine = termCurrentLine.slice(0, termCursorPos) + termCurrentLine.slice(termCursorPos + 1);
+                    redrawLine();
+                }
+                break;
+                
+            case 'ArrowUp':
+                if (termHistory.length > 0 && termHistoryIndex < termHistory.length - 1) {
+                    termHistoryIndex++;
+                    termCurrentLine = termHistory[termHistory.length - 1 - termHistoryIndex];
+                    termCursorPos = termCurrentLine.length;
+                    redrawLine(true);
+                }
+                break;
+                
+            case 'ArrowDown':
+                if (termHistoryIndex > 0) {
+                    termHistoryIndex--;
+                    termCurrentLine = termHistory[termHistory.length - 1 - termHistoryIndex];
+                    termCursorPos = termCurrentLine.length;
+                    redrawLine(true);
+                } else if (termHistoryIndex === 0) {
+                    termHistoryIndex = -1;
+                    termCurrentLine = '';
+                    termCursorPos = 0;
+                    redrawLine(true);
+                }
+                break;
+                
+            case 'ArrowLeft':
+                if (termCursorPos > 0) {
+                    termCursorPos--;
+                    term.write('\x1b[D');
+                }
+                break;
+                
+            case 'ArrowRight':
+                if (termCursorPos < termCurrentLine.length) {
+                    termCursorPos++;
+                    term.write('\x1b[C');
+                }
+                break;
+                
+            case 'Home':
+                term.write(`\x1b[${TERM_PROMPT().length - 27}G`);
+                termCursorPos = 0;
+                break;
+                
+            case 'End':
+                term.write(`\x1b[${termCurrentLine.length + TERM_PROMPT().length - 27}G`);
+                termCursorPos = termCurrentLine.length;
+                break;
+                
+            case 'Tab':
+                // Tab补全
+                ev.preventDefault();
+                if (termCurrentLine) {
+                    doComplete();
+                }
+                break;
+                
+            default:
+                if (key.length === 1 && !ev.ctrlKey) {
+                    termCurrentLine = termCurrentLine.slice(0, termCursorPos) + key + termCurrentLine.slice(termCursorPos);
+                    termCursorPos++;
+                    redrawLine();
+                }
+        }
+    });
+    
+    // 窗口大小调整
+    const resizeObserver = new ResizeObserver(() => {
+        if (termFit) {
+            termFit.fit();
+        }
+    });
+    resizeObserver.observe(document.getElementById('terminalBody'));
+    
+    // 初始适应
+    setTimeout(() => termFit.fit(), 100);
+}
+
+function writePrompt() {
+    term.write(TERM_PROMPT());
+}
+
+function redrawLine(full = false) {
+    if (full) {
+        term.write('\r\x1b[K');
+        writePrompt();
+        term.write(termCurrentLine);
+    } else {
+        term.write('\r\x1b[K');
+        writePrompt();
+        term.write(termCurrentLine);
+        // 移动光标到正确位置
+        const moveLeft = termCurrentLine.length - termCursorPos;
+        if (moveLeft > 0) {
+            term.write(`\x1b[${moveLeft}D`);
+        }
+    }
+}
+
+async function executeTermCommand(cmd) {
+    cmd = cmd.trim();
+    
+    if (!cmd) {
+        writePrompt();
+        return;
+    }
+    
+    // 添加到历史
+    if (cmd !== termHistory[termHistory.length - 1]) {
+        termHistory.push(cmd);
+        if (termHistory.length > 200) termHistory.shift();
+    }
+    termHistoryIndex = -1;
+    
+    // 内置命令
+    if (cmd === 'clear') {
+        term.clear();
+        writePrompt();
+        return;
+    }
+    
+    if (cmd === 'exit') {
+        term.writeln('\x1b[33m提示: 使用浏览器标签页关闭此页面\x1b[0m');
+        writePrompt();
+        return;
+    }
+    
+    if (cmd === 'help') {
+        term.writeln('');
+        term.writeln('\x1b[1;36m可用命令:\x1b[0m');
+        term.writeln('  \x1b[32mclear\x1b[0m    - 清屏');
+        term.writeln('  \x1b[32mexit\x1b[0m     - 退出提示');
+        term.writeln('  \x1b[32mhelp\x1b[0m     - 显示帮助');
+        term.writeln('');
+        term.writeln('\x1b[90m提示: 支持大部分Linux命令，部分危险命令已禁止\x1b[0m');
+        term.writeln('');
+        writePrompt();
+        return;
+    }
+    
+    // 发送到服务器
+    try {
+        updateTerminalStatus(true);
+        const resp = await fetch('/api/terminal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: cmd, cwd: termCwd })
+        });
+        
+        const data = await resp.json();
+        
+        if (resp.ok && data.success) {
+            if (data.output) {
+                term.writeln('');
+                // 处理输出
+                const lines = data.output.split('\n');
+                for (const line of lines) {
+                    term.writeln(line);
+                }
+            }
+            if (data.cwd) {
+                termCwd = data.cwd;
+            }
+        } else {
+            term.writeln(`\x1b[31m${data.error || '命令执行失败'}\x1b[0m`);
+        }
+    } catch (e) {
+        term.writeln(`\x1b[31m网络错误: ${e.message}\x1b[0m`);
+    }
+    
+    updateTerminalStatus(false);
+    writePrompt();
+}
+
+function updateTerminalStatus(loading) {
+    const status = document.getElementById('terminalStatus');
+    if (loading) {
+        status.innerHTML = '<span style="width:6px;height:6px;background:#f0883e;border-radius:50%;animation:blink 1s infinite;"></span> 执行中...';
+        status.classList.add('disconnected');
+    } else {
+        status.innerHTML = '<span style="width:6px;height:6px;background:currentColor;border-radius:50%;"></span> 已连接';
+        status.classList.remove('disconnected');
+    }
+}
+
+function termExec(cmd) {
+    if (!term) initTerminal();
+    term.writeln(`\x1b[90m$ ${cmd}\x1b[0m`);
+    executeTermCommand(cmd);
+}
+
+function terminalClear() {
+    if (term) {
+        term.clear();
+        writePrompt();
+    }
+}
+
+function terminalReset() {
+    if (term) {
+        term.dispose();
+        term = null;
+        termHistory = [];
+        termHistoryIndex = -1;
+        termCwd = '/';
+        termCurrentLine = '';
+        termCursorPos = 0;
+        initTerminal();
+    }
+}
+
+// Tab补全相关
+let lastCompletions = [];
+let lastCompletionIndex = 0;
+let lastCompletionPrefix = '';
+
+async function doComplete() {
+    // 解析当前命令中要补全的部分
+    const beforeCursor = termCurrentLine.substring(0, termCursorPos);
+    const afterCursor = termCurrentLine.substring(termCursorPos);
+    
+    // 找到最后一个需要补全的词
+    const match = beforeCursor.match(/(\S+)$/);
+    const wordToComplete = match ? match[1] : '';
+    const wordStart = match ? beforeCursor.length - wordToComplete.length : termCursorPos;
+    
+    try {
+        const resp = await fetch('/api/terminal/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                command: termCurrentLine, 
+                cwd: termCwd,
+                cursor_pos: termCursorPos 
+            })
+        });
+        
+        const data = await resp.json();
+        
+        if (data.success && data.completions && data.completions.length > 0) {
+            if (data.completions.length === 1) {
+                // 只有一个补全，直接替换
+                const completion = data.completions[0];
+                const newLine = beforeCursor.substring(0, wordStart) + completion + afterCursor;
+                const newCursorPos = wordStart + completion.length;
+                
+                termCurrentLine = newLine;
+                termCursorPos = newCursorPos;
+                redrawLine(true);
+            } else {
+                // 多个补全
+                // 先尝试补全到共同前缀
+                if (data.common_prefix && data.common_prefix.length > wordToComplete.length) {
+                    const newLine = beforeCursor.substring(0, wordStart) + data.common_prefix + afterCursor;
+                    const newCursorPos = wordStart + data.common_prefix.length;
+                    
+                    termCurrentLine = newLine;
+                    termCursorPos = newCursorPos;
+                    redrawLine(true);
+                } else {
+                    // 显示所有补全选项
+                    term.writeln('');
+                    term.writeln(data.completions.map(c => `  \x1b[36m${c}\x1b[0m`).join(''));
+                    writePrompt();
+                    term.write(termCurrentLine);
+                    // 移动光标到正确位置
+                    const moveLeft = termCurrentLine.length - termCursorPos;
+                    if (moveLeft > 0) {
+                        term.write(`\x1b[${moveLeft}D`);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        // 补全失败，静默处理
+    }
+}
 
 // ── Init ──────────────────────────────────────────────
 
 document.getElementById('pathInput').addEventListener('keydown', e => { if (e.key === 'Enter') loadPath(); });
 document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 renderQuickPaths();  // 初始化快捷路径
+renderQuickCmds();   // 初始化快捷命令
 checkAuth();
 </script>
 
@@ -3497,9 +2770,6 @@ checkAuth();
         <div id="modalContent" class="modal-content"></div>
     </div>
 </div>
-
-<!-- Toast -->
-<div id="toast" class="toast"></div>
 
 </body>
 </html>

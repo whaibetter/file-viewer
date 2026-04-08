@@ -9,6 +9,7 @@ security:
   delete_whitelist:
   - /tmp
   - /var/tmp
+  - /home
 permissions:
   folder_permissions: null
   default_permissions:
