@@ -1425,7 +1425,23 @@ def ai_ocr():
                     "success": True,
                     "output": output,
                     "raw": content,
-                    "model": result.get("model", model)
+                    "model": result.get("model", model),
+                    "debug": {
+                        "request": {
+                            "url": url,
+                            "model": model,
+                            "prompt_type": prompt_type,
+                            "prompt": prompts.get(prompt_type, prompts["ocr"]),
+                            "image_size": len(image_base64),
+                            "api_key": api_key[:8] + "****" + api_key[-4:] if len(api_key) > 12 else "****"
+                        },
+                        "response": {
+                            "status": response.status,
+                            "model": result.get("model", model),
+                            "usage": result.get("usage", {}),
+                            "content_length": len(content)
+                        }
+                    }
                 })
             else:
                 return jsonify({'error': '无响应内容'}), 500

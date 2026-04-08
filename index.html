@@ -765,6 +765,78 @@
             color: #58a6ff;
         }
 
+        /* OCR Debug Panel */
+        .ocr-debug-panel {
+            margin-top: 20px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .ocr-debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #21262d;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.85em;
+            color: #8b949e;
+            transition: background 0.15s;
+        }
+        .ocr-debug-header:hover {
+            background: #30363d;
+        }
+        .ocr-debug-content {
+            padding: 16px;
+        }
+        .ocr-debug-section {
+            margin-bottom: 16px;
+        }
+        .ocr-debug-section:last-child {
+            margin-bottom: 0;
+        }
+        .ocr-debug-title {
+            font-size: 0.8em;
+            color: #58a6ff;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .ocr-debug-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .ocr-debug-row {
+            display: flex;
+            gap: 8px;
+            font-size: 0.8em;
+            font-family: monospace;
+        }
+        .ocr-debug-label {
+            color: #6e7681;
+            min-width: 70px;
+            flex-shrink: 0;
+        }
+        .ocr-debug-value {
+            color: #c9d1d9;
+            word-break: break-all;
+        }
+        .ocr-debug-raw {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 0.78em;
+            font-family: monospace;
+            color: #8b949e;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
         /* ── Responsive Design ─────────────────────────────── */
         .settings-tabs { display: flex; gap: 0; border-bottom: 1px solid #30363d; }
         .settings-tab { flex: 1; padding: 12px 8px; background: none; border: none; color: #8b949e; font-size: 0.85em; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
@@ -2204,9 +2276,11 @@ async function executeOcr() {
             ocrLastResult = data.output;
             
             // 渲染结果
+            let resultHtml = '';
+            
+            // 识别结果
             if (mode === 'markdown') {
                 const lines = data.output.split('\n').filter(line => line.trim());
-                let html = '';
                 lines.forEach(line => {
                     const trimmed = line.trim();
                     if (trimmed) {
@@ -2224,13 +2298,56 @@ async function executeOcr() {
                             itemClass = 'ocr-title';
                         }
                         
-                        html += `<div class="ocr-result-item ${itemClass}">${tag}${content}</div>`;
+                        resultHtml += `<div class="ocr-result-item ${itemClass}">${tag}${content}</div>`;
                     }
                 });
-                resultDiv.innerHTML = html || '<div style="color:#8b949e;">无识别结果</div>';
+                resultHtml = resultHtml || '<div style="color:#8b949e;text-align:center;padding:20px;">无识别结果</div>';
             } else {
-                resultDiv.innerHTML = escHtml(data.output);
+                resultHtml = escHtml(data.output) || '<div style="color:#8b949e;text-align:center;padding:20px;">无识别结果</div>';
             }
+            
+            // 调试信息面板
+            let debugHtml = '';
+            if (data.debug) {
+                debugHtml = `
+                    <div class="ocr-debug-panel">
+                        <div class="ocr-debug-header" onclick="toggleOcrDebug()">
+                            <span>🔧 调试信息</span>
+                            <svg id="ocrDebugArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.2s;">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                        <div id="ocrDebugContent" class="ocr-debug-content" style="display:none;">
+                            <div class="ocr-debug-section">
+                                <div class="ocr-debug-title">📤 请求参数</div>
+                                <div class="ocr-debug-grid">
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">URL:</span><span class="ocr-debug-value">${escHtml(data.debug.request.url)}</span></div>
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Model:</span><span class="ocr-debug-value">${escHtml(data.debug.request.model)}</span></div>
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Mode:</span><span class="ocr-debug-value">${escHtml(data.debug.request.prompt_type)}</span></div>
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Prompt:</span><span class="ocr-debug-value">${escHtml(data.debug.request.prompt)}</span></div>
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Image:</span><span class="ocr-debug-value">${data.debug.request.image_size} bytes</span></div>
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">API Key:</span><span class="ocr-debug-value">${escHtml(data.debug.request.api_key)}</span></div>
+                                </div>
+                            </div>
+                            <div class="ocr-debug-section">
+                                <div class="ocr-debug-title">📥 响应参数</div>
+                                <div class="ocr-debug-grid">
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Status:</span><span class="ocr-debug-value" style="color:#4ade80;">${data.debug.response.status}</span></div>
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Model:</span><span class="ocr-debug-value">${escHtml(data.debug.response.model)}</span></div>
+                                    <div class="ocr-debug-row"><span class="ocr-debug-label">Length:</span><span class="ocr-debug-value">${data.debug.response.content_length} chars</span></div>
+                                    ${data.debug.response.usage ? `<div class="ocr-debug-row"><span class="ocr-debug-label">Usage:</span><span class="ocr-debug-value">${JSON.stringify(data.debug.response.usage)}</span></div>` : ''}
+                                </div>
+                            </div>
+                            <div class="ocr-debug-section">
+                                <div class="ocr-debug-title">📄 Raw 响应</div>
+                                <div class="ocr-debug-raw">${escHtml(data.raw || '')}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            resultDiv.innerHTML = resultHtml + debugHtml;
             
             copyBtn.disabled = false;
             saveBtn.disabled = false;
@@ -2300,6 +2417,18 @@ function saveOcrResult() {
     a.click();
     URL.revokeObjectURL(url);
     showToast('结果已保存', 'success');
+}
+
+function toggleOcrDebug() {
+    const content = document.getElementById('ocrDebugContent');
+    const arrow = document.getElementById('ocrDebugArrow');
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        content.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+    }
 }
 
 // Settings Panel Functions
