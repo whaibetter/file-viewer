@@ -716,6 +716,9 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
+        #ocrDebugContainer {
+            border-top: 1px solid #30363d;
+        }
         .ocr-placeholder {
             display: flex;
             flex-direction: column;
@@ -767,10 +770,8 @@
 
         /* OCR Debug Panel */
         .ocr-debug-panel {
-            margin-top: 20px;
             background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
+            border: none;
             overflow: hidden;
         }
         .ocr-debug-header {
@@ -1372,6 +1373,7 @@
                             <p class="ocr-placeholder-text">上传图片后开始识别</p>
                         </div>
                     </div>
+                    <div id="ocrDebugContainer"></div>
                 </div>
             </div>
         </div>
@@ -2313,6 +2315,7 @@ async function executeOcr() {
     btn.disabled = true;
     btn.innerHTML = '<span class="ocr-btn-icon">⏳</span> 识别中...';
     resultDiv.innerHTML = '<div style="color:#8b949e;text-align:center;padding:40px;">正在进行 OCR 识别，请稍候...</div>';
+    document.getElementById('ocrDebugContainer').innerHTML = '';
 
     const requestData = {
         image: ocrImageData,
@@ -2408,7 +2411,12 @@ async function executeOcr() {
                 `;
             }
             
-            resultDiv.innerHTML = resultHtml + debugHtml;
+            // 渲染识别结果
+            resultDiv.innerHTML = resultHtml;
+            
+            // 渲染调试信息到独立容器
+            const debugContainer = document.getElementById('ocrDebugContainer');
+            debugContainer.innerHTML = debugHtml;
             
             copyBtn.disabled = false;
             saveBtn.disabled = false;
@@ -2420,10 +2428,12 @@ async function executeOcr() {
             }
         } else {
             resultDiv.innerHTML = `<div style="color:#f85149;">识别失败: ${escHtml(data.error || '未知错误')}</div>`;
+            document.getElementById('ocrDebugContainer').innerHTML = '';
             showToast('识别失败', 'error');
         }
     } catch (e) {
         resultDiv.innerHTML = `<div style="color:#f85149;">网络错误: ${escHtml(e.message)}</div>`;
+        document.getElementById('ocrDebugContainer').innerHTML = '';
         showToast('网络错误', 'error');
     } finally {
         btn.disabled = false;
