@@ -50,8 +50,8 @@
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/whaibetter/file-viewer.git /home/file-viewer
-cd /home/file-viewer
+git clone https://github.com/whaibetter/cloudrein.git /home/cloudrein
+cd /home/cloudrein
 
 # 2. 安装依赖
 pip install pyyaml flask flask-socketio
@@ -60,7 +60,7 @@ pip install pyyaml flask flask-socketio
 sudo ./install.sh
 
 # 4. 修改默认密码
-sudo file-viewer passwd
+sudo cloudrein passwd
 ```
 
 安装完成后访问 `http://<服务器IP>` 即可使用。
@@ -70,8 +70,8 @@ sudo file-viewer passwd
 服务直接运行项目目录中的代码，修改前后端代码后只需重启即可：
 
 ```bash
-# 修改 index.html 或 file-viewer-server.py 后
-sudo file-viewer restart
+# 修改 index.html 或 cloudrein-server.py 后
+sudo cloudrein restart
 ```
 
 无需复制文件，重启即生效。
@@ -79,16 +79,16 @@ sudo file-viewer restart
 ## 文件结构
 
 ```
-/home/file-viewer/           # 项目目录（服务直接读取）
+/home/cloudrein/           # 项目目录（服务直接读取）
 ├── config.yaml              # 配置文件
-├── file-viewer              # 管理脚本
-├── file-viewer-server.py    # 后端服务
-├── file-viewer.service      # systemd 服务配置
+├── cloudrein              # 管理脚本
+├── cloudrein-server.py    # 后端服务
+├── cloudrein.service      # systemd 服务配置
 ├── index.html               # 前端页面
 ├── install.sh               # 安装脚本
 └── README.md                # 说明文档
 
-/etc/file-viewer/            # 系统数据目录
+/etc/cloudrein/            # 系统数据目录
 ├── config.yaml              # 用户配置（可选）
 ├── passwd                   # 密码文件
 └── ai_config.json           # AI/OCR 配置
@@ -100,15 +100,15 @@ sudo file-viewer restart
 
 | 配置项 | 配置路径 | 说明 |
 |--------|----------|------|
-| 主配置 | `/home/file-viewer/config.yaml` | 项目目录 |
-| 用户配置 | `/etc/file-viewer/config.yaml` | 覆盖主配置（可选） |
-| 密码文件 | `/etc/file-viewer/passwd` | SHA256哈希存储 |
-| AI配置 | `/etc/file-viewer/ai_config.json` | OCR API配置 |
+| 主配置 | `/home/cloudrein/config.yaml` | 项目目录 |
+| 用户配置 | `/etc/cloudrein/config.yaml` | 覆盖主配置（可选） |
+| 密码文件 | `/etc/cloudrein/passwd` | SHA256哈希存储 |
+| AI配置 | `/etc/cloudrein/ai_config.json` | OCR API配置 |
 
 ### YAML 配置文件
 
 ```yaml
-# File Viewer 主配置文件
+# CloudRein 主配置文件
 
 # 服务器配置
 server:
@@ -118,8 +118,8 @@ server:
 
 # 数据存储配置
 storage:
-  config_dir: "/etc/file-viewer"
-  password_file: "/etc/file-viewer/passwd"
+  config_dir: "/etc/cloudrein"
+  password_file: "/etc/cloudrein/passwd"
 
 # 安全配置
 security:
@@ -171,15 +171,15 @@ download_limits:
 ## 管理命令
 
 ```bash
-file-viewer start      # 启动服务
-file-viewer stop       # 停止服务
-file-viewer restart    # 重启服务（加载最新代码）
-file-viewer status     # 查看状态
-file-viewer enable     # 设置开机自启
-file-viewer disable    # 取消开机自启
-file-viewer passwd     # 修改登录密码
-file-viewer logs       # 查看日志
-file-viewer logs -f    # 实时查看日志
+cloudrein start      # 启动服务
+cloudrein stop       # 停止服务
+cloudrein restart    # 重启服务（加载最新代码）
+cloudrein status     # 查看状态
+cloudrein enable     # 设置开机自启
+cloudrein disable    # 取消开机自启
+cloudrein passwd     # 修改登录密码
+cloudrein logs       # 查看日志
+cloudrein logs -f    # 实时查看日志
 ```
 
 ## Nginx 配置（推荐）
@@ -208,7 +208,7 @@ server {
 
 ## 安全建议
 
-1. **修改默认密码** - 首次安装后立即运行 `file-viewer passwd`
+1. **修改默认密码** - 首次安装后立即运行 `cloudrein passwd`
 2. **配置删除白名单** - 只添加必要的临时目录或上传目录
 3. **限制写入权限** - 在配置文件中限制敏感目录的写入权限
 4. **使用 HTTPS** - 配置 SSL 证书加密传输
@@ -262,7 +262,7 @@ server {
 
 **Q: 登录后显示 401 错误？**
 
-A: 检查密码文件 `/etc/file-viewer/passwd` 是否存在，重新设置密码。
+A: 检查密码文件 `/etc/cloudrein/passwd` 是否存在，重新设置密码。
 
 **Q: 无法编辑/上传文件？**
 
@@ -274,14 +274,14 @@ A: 该路径不在删除白名单中，请在"设置"页面添加允许删除的
 
 **Q: 修改代码后不生效？**
 
-A: 重启服务：`file-viewer restart`
+A: 重启服务：`cloudrein restart`
 
 **Q: 如何查看日志？**
 
 ```bash
-file-viewer logs
+cloudrein logs
 # 或
-journalctl -u file-viewer -f
+journalctl -u cloudrein -f
 ```
 
 **Q: OCR 识别失败？**
@@ -291,9 +291,9 @@ A: 检查 API Key 是否配置正确，可在工具页面配置 SiliconFlow API 
 ## 更新项目
 
 ```bash
-cd /home/file-viewer
+cd /home/cloudrein
 git pull
-sudo file-viewer restart
+sudo cloudrein restart
 ```
 
 ## License
