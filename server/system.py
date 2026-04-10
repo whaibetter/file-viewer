@@ -191,7 +191,86 @@ def collect_system_info() -> dict:
     except Exception:
         info["temperature"] = None
 
+    # 磁盘 IO 监控
+    try:
+        # 读取 /proc/diskstats
+        diskstats = _read_file("/proc/diskstats")
+        total_read = 0
+        total_write = 0
+        total_ios = 0
+        
+        for line in diskstats.splitlines():
+            parts = line.split()
+            if len(parts) >= 11:
+                # 跳过分区和虚拟设备
+                device = parts[2]
+                if device.startswith(('loop', 'ram', 'sr', 'dm-', 'md')):
+                    continue
+                
+                # sectors read (index 5) and sectors written (index 9)
+                # 每个扇区 512 字节
+                read_sectors = int(parts[5])
+                write_sectors = int(parts[9])
+                # reads + writes (index 3 and index 7)
+                reads = int(parts[3])
+                writes = int(parts[7])
+                
+                total_read += read_sectors * 512
+                total_write += write_sectors * 512
+                total_ios += reads + writes
+        
+        # 计算速率
+        now = time.time()
+        if not hasattr(collect_system_info, "_prev_disk_io"):
+            collect_system_info._prev_disk_io = (now, total_read, total_write, total_ios)
+            info["disk_io"] = {
+                "read_bytes_per_sec": 0,
+                "write_bytes_per_sec": 0,
+                "read_bytes": total_read,
+                "write_bytes": total_write,
+                "iops": 0,
+            }
+        else:
+            prev_time, prev_read, prev_write, prev_ios = collect_system_info._prev_disk_io
+            dt = now - prev_time
+            if dt > 0:
+                read_rate = (total_read - prev_read) / dt
+                write_rate = (total_write - prev_write) / dt
+                ios_rate = (total_ios - prev_ios) / dt
+                info["disk_io"] = {
+                    "read_bytes_per_sec": max(0, read_rate),
+                    "write_bytes_per_sec": max(0, write_rate),
+                    "read_bytes": total_read,
+                    "write_bytes": total_write,
+                    "iops": max(0, ios_rate),
+                }
+                collect_system_info._prev_disk_io = (now, total_read, total_write, total_ios)
+            else:
+                info["disk_io"] = {
+                    "read_bytes_per_sec": 0,
+                    "write_bytes_per_sec": 0,
+                    "read_bytes": total_read,
+                    "write_bytes": total_write,
+                    "iops": 0,
+                }
+    except Exception:
+        info["disk_io"] = {
+            "read_bytes_per_sec": 0,
+            "write_bytes_per_sec": 0,
+            "read_bytes": 0,
+            "write_bytes": 0,
+            "iops": 0,
+        }
+
     info["timestamp"] = int(time.time())
+    
+    # 添加到历史记录
+    try:
+        from .monitor_history import add_history_point
+        add_history_point(info)
+    except Exception:
+        pass
+    
     return info
 
 

@@ -30,14 +30,27 @@ files_bp = Blueprint('files', __name__)
 
 
 @files_bp.route('/')
+@files_bp.route('/monitor')
+@files_bp.route('/files')
+@files_bp.route('/tools')
 @files_bp.route('/index.html')
 def index():
-    """主页"""
+    """主页 - 所有页面使用同一个 HTML，前端根据 URL 显示不同内容"""
     index_path = PROJECT_DIR / 'index.html'
     if index_path.exists():
         with open(index_path, 'r', encoding='utf-8') as f:
             return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
     return jsonify({'error': 'index.html not found'}), 404
+
+
+@files_bp.route('/logo.svg')
+def logo():
+    """Logo SVG"""
+    logo_path = PROJECT_DIR / 'logo.svg'
+    if logo_path.exists():
+        with open(logo_path, 'r', encoding='utf-8') as f:
+            return f.read(), 200, {'Content-Type': 'image/svg+xml'}
+    return jsonify({'error': 'logo.svg not found'}), 404
 
 
 @files_bp.route('/api/login', methods=['POST'])
@@ -84,6 +97,53 @@ def system():
 
     from ..system import collect_system_info
     return jsonify(collect_system_info())
+
+
+@files_bp.route('/api/system/history', methods=['GET'])
+def system_history():
+    """系统历史数据"""
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    hours = request.args.get('hours', 1, type=int)
+    # 限制只能查询 1、6、24 小时
+    if hours not in [1, 6, 24]:
+        hours = 1
+
+    from ..monitor_history import get_history
+    return jsonify(get_history(hours))
+
+
+@files_bp.route('/api/system/restart', methods=['POST'])
+def system_restart():
+    """重启服务"""
+    if not require_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        import subprocess
+        import threading
+        import time
+        
+        def restart_after_delay():
+            """延迟重启，让响应先返回"""
+            time.sleep(0.5)  # 等待500ms让响应返回
+            try:
+                # 使用 systemctl 重启服务
+                subprocess.run(['systemctl', 'restart', 'file-viewer'], 
+                             check=True, 
+                             capture_output=True,
+                             timeout=10)
+            except Exception as e:
+                print(f"Failed to restart service: {e}")
+        
+        # 在后台线程中执行重启
+        restart_thread = threading.Thread(target=restart_after_delay, daemon=True)
+        restart_thread.start()
+        
+        return jsonify({'success': True, 'message': '服务重启中...'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @files_bp.route('/api/file', methods=['GET'])

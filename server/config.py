@@ -182,6 +182,14 @@ def get_download_limits() -> dict:
     return _config.get("download_limits", {})
 
 
+def get_monitor_config() -> dict:
+    """获取监控配置"""
+    global _config
+    if _config is None:
+        load_config()
+    return _config.get("monitor", {})
+
+
 def get_data_dir() -> Path:
     """获取数据存储目录"""
     global _config, _config_file_path
@@ -227,4 +235,13 @@ MAX_DIR_DEPTH = _download_limits["max_dir_depth"]
 MAX_FILE_PREVIEW_SIZE = _download_limits["max_file_preview_size"]
 
 # 文件夹权限配置（不在用户配置中，仅从主配置读取）
+
 FOLDER_PERMISSIONS = _permissions_cfg.get("folder_permissions") or {}
+
+
+
+# 监控历史配置
+
+_monitor_cfg = get_monitor_config()
+
+MONITOR_HISTORY_MINUTES = min(_monitor_cfg.get("history_minutes", 60), 60)  # 最大60分钟

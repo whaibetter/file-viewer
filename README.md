@@ -1,4 +1,4 @@
-# File Viewer
+# CloudRein
 
 基于 Web 的 Linux 服务器文件管理工具，支持文件浏览、编辑、上传、下载、删除等功能。
 

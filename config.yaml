@@ -21,5 +21,7 @@ download_limits:
   max_files_in_zip: 500
   max_dir_depth: 20
   max_file_preview_size: 2097152
+monitor:
+  history_minutes: 60  # 监控历史数据保存时长（分钟），最大60分钟
 logging:
   level: INFO

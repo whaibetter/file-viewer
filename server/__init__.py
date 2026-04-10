@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-File Viewer Server - Modular Package
+CloudRein Server - Modular Package
 """
 
 import os

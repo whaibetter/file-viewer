@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Viewer</title>
+    <title>CloudRein</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
+    <link rel="shortcut icon" type="image/svg+xml" href="/logo.svg">
     <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
     <!-- Highlight.js for syntax highlighting -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/python.min.js"></script>
+    <!-- Chart.js for monitoring charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/yaml.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/json.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/javascript.min.js"></script>
@@ -395,6 +400,33 @@
         .disk-detail { display: flex; justify-content: space-between; font-size: 0.82em; color: #8b949e; margin-top: 2px; }
         .net-rate { font-size: 1.4em; font-weight: 600; color: #e6edf3; font-family: monospace; }
         .net-label { font-size: 0.78em; color: #8b949e; margin-top: 2px; }
+        
+        /* 监控控制面板 */
+        .mon-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding: 12px 16px; background: #161b22; border-radius: 6px; border: 1px solid #30363d; }
+        .mon-controls-group { display: flex; align-items: center; gap: 8px; }
+        .mon-controls-label { font-size: 0.85em; color: #8b949e; }
+        .toggle-btn { padding: 6px 14px; font-size: 0.85em; background: #21262d; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .toggle-btn:hover { background: #30363d; }
+        .toggle-btn.active { background: #238636; border-color: #2ea043; color: #fff; }
+        .toggle-btn.paused { background: #da3633; border-color: #f85149; color: #fff; }
+        .refresh-btn { padding: 6px 12px; background: #21262d; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 0.85em; }
+        .refresh-btn:hover { background: #30363d; }
+        
+        /* 历史图表 */
+        .chart-section { margin-top: 20px; }
+        .chart-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+        .chart-tab { padding: 8px 16px; font-size: 0.85em; background: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .chart-tab:hover { background: #30363d; color: #c9d1d9; }
+        .chart-tab.active { background: #1f6feb; border-color: #388bfd; color: #fff; }
+        .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 16px; }
+        .chart-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; }
+        .chart-card-title { font-size: 0.9em; font-weight: 600; color: #c9d1d9; margin-bottom: 12px; }
+        .chart-container { position: relative; height: 200px; }
+        
+        /* 磁盘 IO */
+        .io-rate { font-size: 1.2em; font-weight: 600; color: #e6edf3; font-family: monospace; }
+        .io-label { font-size: 0.75em; color: #8b949e; }
+        
         .net-pair { display: flex; gap: 32px; margin-bottom: 12px; }
         .proc-table { width: 100%; border-collapse: collapse; font-size: 0.82em; }
         .proc-table th { color: #8b949e; font-weight: 500; text-align: left; padding: 4px 8px; border-bottom: 1px solid #30363d; }
@@ -603,6 +635,55 @@
         .settings-close { background: none; border: none; color: #8b949e; font-size: 1.5em; cursor: pointer; padding: 0; line-height: 1; }
         .settings-close:hover { color: #f85149; }
         .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
+        
+        /* 自定义滚动条样式 */
+        .settings-content::-webkit-scrollbar { width: 8px; }
+        .settings-content::-webkit-scrollbar-track { background: #0d1117; border-radius: 4px; }
+        .settings-content::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        .settings-content::-webkit-scrollbar-thumb:hover { background: #484f58; }
+        
+        /* 设置面板操作按钮响应式布局 */
+        .settings-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .settings-actions .btn {
+            width: 100%;
+            text-align: center;
+            padding: 8px 12px;
+        }
+        .btn-danger { color: #f85149 !important; }
+        .btn-danger:hover { background: rgba(248,81,73,0.15) !important; border-color: #f85149 !important; }
+        
+        @media (max-width: 600px) {
+            .settings-actions {
+                grid-template-columns: 1fr 1fr;
+            }
+            /* 设置面板移动端优化 */
+            .settings-panel { width: 100%; right: -100%; }
+            .settings-content { padding: 12px; }
+            .settings-tabs { flex-wrap: wrap; gap: 6px; }
+            .settings-tab { padding: 8px 12px; font-size: 0.85em; }
+            /* 配置输入框优化 */
+            .settings-tab-body input[type="number"],
+            .settings-tab-body input[type="text"] {
+                font-size: 16px; /* 防止iOS自动缩放 */
+            }
+            /* 表单行改为垂直布局 */
+            .settings-tab-body > div > div[style*="display:flex"][style*="justify-content:space-between"],
+            .settings-tab-body div[style*="display:flex"][style*="justify-content:space-between"][style*="align-items:center"] {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            .settings-tab-body input[style*="width:120px"] {
+                width: 100% !important;
+                max-width: none !important;
+            }
+        }
+        
         .settings-section { margin-bottom: 24px; }
         .settings-section-title { font-size: 0.82em; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
         .settings-panel-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 1999; display: none; }
@@ -1340,7 +1421,7 @@
 <!-- Login Overlay -->
 <div id="loginOverlay" class="visible">
     <div class="login-card">
-        <h2>File Viewer</h2>
+        <h2>CloudRein</h2>
         <p class="subtitle">请输入密码以继续</p>
         <div class="login-field">
             <label for="loginPassword">密码</label>
@@ -1352,18 +1433,19 @@
 </div>
 
 <header>
-    <h1>File Viewer</h1>
+    <img src="/logo.svg" alt="Logo" style="height: 28px; width: 28px; margin-right: 8px;">
+    <h1>CloudRein</h1>
     <div class="nav-tabs">
-        <button class="nav-tab active" id="tabFiles" onclick="switchTab('files')">文件浏览</button>
-        <button class="nav-tab" id="tabMonitor" onclick="switchTab('monitor')">系统监控</button>
+        <button class="nav-tab active" id="tabMonitor" onclick="switchTab('monitor')">系统监控</button>
+        <button class="nav-tab" id="tabFiles" onclick="switchTab('files')">文件浏览</button>
         <button class="nav-tab" id="tabTools" onclick="switchTab('tools')">工具</button>
     </div>
     <button class="settings-btn" onclick="openSettingsPanel()" title="设置">⚙️</button>
     <button class="logout-btn" onclick="doLogout()">退出登录</button>
 </header>
 
-<!-- ============ FILE VIEWER SECTION ============ -->
-<div id="sectionFiles">
+<!-- ============ CLOUDREIN SECTION ============ -->
+<div id="sectionFiles" class="section-hidden">
     <div class="search-bar">
         <input type="text" class="path-input" id="pathInput"
             placeholder="输入文件或目录的绝对路径，如 /etc/nginx/nginx.conf"
@@ -1391,7 +1473,7 @@
 </div>
 
 <!-- ============ SYSTEM MONITOR SECTION ============ -->
-<div id="sectionMonitor" class="section-hidden" style="flex:1;display:flex;flex-direction:column;">
+<div id="sectionMonitor" style="flex:1;display:flex;flex-direction:column;">
     <div class="monitor-wrap" id="monitorContent">
         <div class="state-box">
             <div class="state-icon">⏳</div>
@@ -1540,7 +1622,7 @@
                 <input type="text" id="newWhitelistPath" class="path-input" placeholder="输入路径，如 /tmp 或 /home/test.txt" style="flex:1">
                 <button class="btn success" onclick="addWhitelistPathFromPanel()">添加</button>
             </div>
-            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;max-height:400px;overflow-y:auto;">
+            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;">
                 <div id="whitelistContainer">
                     <div class="state-box" style="padding:20px;">
                         <div class="state-msg">加载中...</div>
@@ -1569,7 +1651,7 @@
                 <input type="text" id="newQuickNameInput" class="path-input" placeholder="显示名称">
                 <button class="btn success" onclick="addQuickPathFromPanel()">添加</button>
             </div>
-            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;max-height:400px;overflow-y:auto;">
+            <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden;">
                 <div id="quickPathsSettingsContainer">
                     <div class="state-box" style="padding:20px;">
                         <div class="state-msg">加载中...</div>
@@ -1640,6 +1722,19 @@
                 </div>
             </div>
             
+            <!-- 监控历史配置 -->
+            <div style="margin-bottom:20px;">
+                <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">📊 监控历史配置</div>
+                <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <label style="color:#c9d1d9;font-size:0.9em;">历史数据保存时长（分钟）</label>
+                        <input type="number" id="configMonitorHistoryMinutes" class="path-input" style="width:120px;text-align:right;" min="1" max="60" value="60">
+                    </div>
+                    <div style="color:#484f58;font-size:0.75em;">范围: 1-60 分钟，数据保存在内存中，时长越短内存占用越少</div>
+                    <div style="color:#484f58;font-size:0.75em;margin-top:4px;">⚠️ 修改后需要重启服务才能生效</div>
+                </div>
+            </div>
+            
             <!-- 配置文件直接编辑 -->
             <div style="margin-bottom:20px;">
                 <div style="color:#e6edf3;font-weight:600;margin-bottom:10px;font-size:0.95em;">📝 配置文件编辑</div>
@@ -1669,10 +1764,11 @@
             </div>
             
             <!-- 操作按钮 -->
-            <div style="display:flex;gap:8px;margin-top:16px;">
+            <div class="settings-actions">
                 <button class="btn primary" onclick="saveUserConfig()">保存配置</button>
                 <button class="btn" onclick="resetUserConfig()">恢复默认</button>
                 <button class="btn" onclick="loadUserConfig()">刷新</button>
+                <button class="btn btn-danger" onclick="restartService()">🔄 重启服务</button>
             </div>
             
             <div id="sysConfigMessage" style="display:none;margin-top:12px;padding:10px;border-radius:6px;font-size:0.85em;text-align:center;"></div>
@@ -1714,8 +1810,12 @@
 <script>
 let currentPath = '';
 let currentFileData = null;
-let currentTab = 'files';
+let currentTab = 'monitor';
 let monitorTimer = null;
+let monitorPaused = false;
+let monitorInterval = 3000;
+let monitorCharts = {};
+let currentHistoryHours = 1;
 let currentDirPath = '';
 let currentDirWritable = false;
 let currentDirCanDelete = false;
@@ -1834,6 +1934,8 @@ async function loadUserConfig() {
             document.getElementById('configMaxFilesInZip').value = configData.config.download_limits?.max_files_in_zip || 500;
             document.getElementById('configMaxDirDepth').value = configData.config.download_limits?.max_dir_depth || 20;
             document.getElementById('configMaxFilePreviewSize').value = Math.round((configData.config.download_limits?.max_file_preview_size || 2097152) / 1048576);
+            // 监控历史配置
+            document.getElementById('configMonitorHistoryMinutes').value = configData.config.monitor?.history_minutes || 60;
         }
         
         // 加载原始配置文件到编辑器
@@ -1858,6 +1960,9 @@ async function saveUserConfig() {
             max_files_in_zip: parseInt(document.getElementById('configMaxFilesInZip').value) || 500,
             max_dir_depth: parseInt(document.getElementById('configMaxDirDepth').value) || 20,
             max_file_preview_size: (parseInt(document.getElementById('configMaxFilePreviewSize').value) || 2) * 1048576
+        },
+        monitor: {
+            history_minutes: Math.min(parseInt(document.getElementById('configMonitorHistoryMinutes').value) || 60, 60)
         }
     };
     
@@ -1874,6 +1979,9 @@ async function saveUserConfig() {
     }
     if (userConfigCache?.download_limits?.max_total_download_size !== config.download_limits.max_total_download_size) {
         changes.push(`批量下载限制: ${config.download_limits.max_total_download_size / 1048576} MB`);
+    }
+    if (userConfigCache?.monitor?.history_minutes !== config.monitor.history_minutes) {
+        changes.push(`监控历史时长: ${config.monitor.history_minutes} 分钟（需要重启服务生效）`);
     }
     
     if (!confirm(`确认保存以下配置修改？\n\n${changes.length > 0 ? changes.join('\n') : '无变更'}\n\n点击确定保存配置。`)) {
@@ -1962,6 +2070,90 @@ async function resetUserConfig() {
         msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
         msgEl.style.color = '#f85149';
         msgEl.textContent = '重置失败: ' + e.message;
+    }
+}
+
+async function restartService() {
+    if (!confirm('确认重启服务？\n\n重启期间服务将暂时不可用，历史监控数据会被清空。')) {
+        return;
+    }
+    
+    const msgEl = document.getElementById('sysConfigMessage');
+    msgEl.style.display = 'block';
+    msgEl.style.background = 'rgba(248,81,73,0.1)';
+    msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+    msgEl.style.color = '#f85149';
+    msgEl.textContent = '⏳ 正在重启服务...';
+    
+    try {
+        // 调用重启API
+        const resp = await fetch('/api/system/restart', { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            msgEl.textContent = '⏳ 服务正在重启，等待恢复...';
+            
+            // 等待服务重启并尝试重新连接
+            let retryCount = 0;
+            const maxRetry = 10; // 最多重试10次
+            const retryInterval = 1000; // 每秒重试一次
+            
+            const checkService = async () => {
+                retryCount++;
+                try {
+                    const checkResp = await fetch('/api/auth/check', { 
+                        method: 'GET',
+                        signal: AbortSignal.timeout(2000) // 2秒超时
+                    });
+                    
+                    if (checkResp.ok) {
+                        // 服务已恢复
+                        msgEl.style.background = 'rgba(63,185,80,0.1)';
+                        msgEl.style.border = '1px solid rgba(63,185,80,0.3)';
+                        msgEl.style.color = '#3fb950';
+                        msgEl.textContent = `✅ 服务重启成功！已恢复运行`;
+                        
+                        // 刷新监控数据
+                        setTimeout(() => {
+                            fetchSystemInfo();
+                            fetchHistoryData();
+                        }, 1000);
+                        
+                        setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+                        return true;
+                    }
+                } catch (e) {
+                    // 服务还未恢复，继续重试
+                }
+                
+                if (retryCount < maxRetry) {
+                    msgEl.textContent = `⏳ 等待服务恢复... (${retryCount}/${maxRetry})`;
+                    setTimeout(checkService, retryInterval);
+                } else {
+                    msgEl.style.background = 'rgba(248,81,73,0.1)';
+                    msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+                    msgEl.style.color = '#f85149';
+                    msgEl.textContent = '⚠️ 重启超时，请手动检查服务状态';
+                }
+                return false;
+            };
+            
+            // 延迟1秒后开始检测
+            setTimeout(checkService, 1000);
+        } else {
+            msgEl.style.background = 'rgba(248,81,73,0.1)';
+            msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+            msgEl.style.color = '#f85149';
+            msgEl.textContent = data.error || '重启失败';
+        }
+    } catch (e) {
+        msgEl.style.background = 'rgba(248,81,73,0.1)';
+        msgEl.style.border = '1px solid rgba(248,81,73,0.3)';
+        msgEl.style.color = '#f85149';
+        msgEl.textContent = '重启失败: ' + e.message;
     }
 }
 
@@ -2315,6 +2507,14 @@ function toggleSort(field) {
 
 function switchTab(tab) {
     currentTab = tab;
+    
+    // 更新 URL
+    const urlMap = { 'monitor': '/', 'files': '/files', 'tools': '/tools' };
+    const newUrl = urlMap[tab] || '/';
+    if (window.location.pathname !== newUrl) {
+        history.pushState({ tab }, '', newUrl);
+    }
+    
     document.getElementById('tabFiles').classList.toggle('active', tab === 'files');
     document.getElementById('tabMonitor').classList.toggle('active', tab === 'monitor');
     document.getElementById('tabTools').classList.toggle('active', tab === 'tools');
@@ -2719,13 +2919,8 @@ function hideLogin() {
     document.getElementById('loginOverlay').classList.remove('visible');
     document.getElementById('loginPassword').value = '';
     document.getElementById('loginError').classList.remove('visible');
-    if (initFromUrl()) {
-        loadPathWithoutPush();
-    } else {
-        // 首次登录没有 hash 时，默认加载根目录
-        document.getElementById('pathInput').value = '/';
-        loadPathWithoutPush();
-    }
+    // 根据 URL 初始化页面
+    initPageFromUrl();
 }
 
 async function doLogin() {
@@ -3602,8 +3797,52 @@ function getFileIcon(name) {
 
 // ── System Monitor ────────────────────────────────────
 
-function startMonitor() { if (monitorTimer) return; fetchSystemInfo(); monitorTimer = setInterval(fetchSystemInfo, 3000); }
-function stopMonitor() { if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; } }
+function startMonitor() { 
+    if (monitorTimer) return; 
+    fetchSystemInfo(); 
+    monitorTimer = setInterval(fetchSystemInfo, monitorInterval); 
+}
+
+function stopMonitor() { 
+    if (monitorTimer) { 
+        clearInterval(monitorTimer); 
+        monitorTimer = null; 
+    } 
+}
+
+function toggleMonitorPause() {
+    monitorPaused = !monitorPaused;
+    if (monitorPaused) {
+        stopMonitor();
+    } else {
+        startMonitor();
+    }
+    updateMonitorControls();
+}
+
+function setMonitorInterval(interval) {
+    monitorInterval = interval;
+    if (!monitorPaused && monitorTimer) {
+        stopMonitor();
+        startMonitor();
+    }
+    updateMonitorControls();
+}
+
+function updateMonitorControls() {
+    const pauseBtn = document.getElementById('monPauseBtn');
+    const intervalBtns = document.querySelectorAll('.mon-interval-btn');
+    
+    if (pauseBtn) {
+        pauseBtn.textContent = monitorPaused ? '▶️ 继续' : '⏸️ 暂停';
+        pauseBtn.className = monitorPaused ? 'toggle-btn paused' : 'toggle-btn active';
+    }
+    
+    intervalBtns.forEach(btn => {
+        const interval = parseInt(btn.dataset.interval);
+        btn.className = interval === monitorInterval ? 'toggle-btn active' : 'toggle-btn';
+    });
+}
 
 // ── Whitelist Management ──────────────────────────────
 
@@ -3702,15 +3941,40 @@ async function fetchSystemInfo() {
 function pbarClass(pct) { if (pct < 60) return 'pbar-green'; if (pct < 85) return 'pbar-yellow'; return 'pbar-red'; }
 
 function renderMonitor(d) {
-    const cpu = d.cpu || {}, mem = d.memory || {}, net = d.network || {}, load = d.load || {}, procs = d.processes || [], disks = d.disks || [];
+    const cpu = d.cpu || {}, mem = d.memory || {}, net = d.network || {}, load = d.load || {}, procs = d.processes || [], disks = d.disks || [], diskIO = d.disk_io || {};
     const now = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-    let html = `<div class="mon-header"><h2>${escHtml(d.hostname || 'Server')}</h2><div class="mon-meta"><span class="mon-live"><span class="mon-live-dot"></span> 实时</span><span>更新于 ${now}</span></div></div><div class="mon-grid">`;
+    
+    // 控制面板
+    let html = `
+        <div class="mon-controls">
+            <div class="mon-controls-group">
+                <span class="mon-controls-label">刷新控制：</span>
+                <button id="monPauseBtn" class="toggle-btn ${monitorPaused ? 'paused' : 'active'}" onclick="toggleMonitorPause()">${monitorPaused ? '▶️ 继续' : '⏸️ 暂停'}</button>
+            </div>
+            <div class="mon-controls-group">
+                <span class="mon-controls-label">刷新频率：</span>
+                <button class="toggle-btn mon-interval-btn ${monitorInterval === 3000 ? 'active' : ''}" data-interval="3000" onclick="setMonitorInterval(3000)">3秒</button>
+                <button class="toggle-btn mon-interval-btn ${monitorInterval === 10000 ? 'active' : ''}" data-interval="10000" onclick="setMonitorInterval(10000)">10秒</button>
+                <button class="toggle-btn mon-interval-btn ${monitorInterval === 30000 ? 'active' : ''}" data-interval="30000" onclick="setMonitorInterval(30000)">30秒</button>
+            </div>
+            <button class="refresh-btn" onclick="fetchSystemInfo(); fetchHistoryData();">🔄 立即刷新</button>
+        </div>
+    `;
+    
+    html += `<div class="mon-header"><h2>${escHtml(d.hostname || 'Server')}</h2><div class="mon-meta"><span class="mon-live"><span class="mon-live-dot"></span> 实时</span><span>更新于 ${now}</span></div></div><div class="mon-grid">`;
     html += `<div class="mon-card"><div class="mon-card-title">🖥️ 系统</div><div class="mon-row"><span class="label">系统</span><span class="val">${escHtml(d.os || '')}</span></div><div class="mon-row"><span class="label">内核</span><span class="val">${escHtml(d.kernel || '')}</span></div><div class="mon-row"><span class="label">运行</span><span class="val">${escHtml(d.uptime || '')}</span></div></div>`;
     const cpuPct = cpu.usage_percent || 0;
     html += `<div class="mon-card"><div class="mon-card-title">⚡ CPU</div><div class="mon-big-num">${cpuPct.toFixed(1)}%</div><div class="pbar-wrap"><div class="pbar ${pbarClass(cpuPct)}" style="width:${cpuPct}%"></div></div><div class="mon-row"><span class="label">核心</span><span class="val">${cpu.physical_cores || '-'} / ${cpu.threads || '-'}</span></div><div class="mon-row"><span class="label">负载</span><span class="val">${load['1m']?.toFixed(2)} / ${load['5m']?.toFixed(2)} / ${load['15m']?.toFixed(2)}</span></div></div>`;
     const memPct = mem.usage_percent || 0;
     html += `<div class="mon-card"><div class="mon-card-title">🧠 内存</div><div class="mon-big-num">${memPct.toFixed(1)}%</div><div class="pbar-wrap"><div class="pbar ${pbarClass(memPct)}" style="width:${memPct}%"></div></div><div class="mon-row"><span class="label">已用</span><span class="val">${formatSize(mem.used)} / ${formatSize(mem.total)}</span></div></div>`;
     html += `<div class="mon-card"><div class="mon-card-title">🌐 网络</div><div class="net-pair"><div><div class="net-rate" style="color:#4ade80">↓ ${formatRate(net.rx_rate || 0)}</div><div class="net-label">下行</div></div><div><div class="net-rate" style="color:#58a6ff">↑ ${formatRate(net.tx_rate || 0)}</div><div class="net-label">上行</div></div></div></div>`;
+    
+    // 磁盘 IO 卡片
+    html += `<div class="mon-card"><div class="mon-card-title">💿 磁盘 IO</div>`;
+    html += `<div class="net-pair"><div><div class="io-rate" style="color:#4ade80">↓ ${formatRate(diskIO.read_bytes_per_sec || 0)}</div><div class="io-label">读取</div></div><div><div class="io-rate" style="color:#58a6ff">↑ ${formatRate(diskIO.write_bytes_per_sec || 0)}</div><div class="io-label">写入</div></div></div>`;
+    html += `<div class="mon-row" style="margin-top:8px"><span class="label">IOPS</span><span class="val" style="font-family:monospace">${(diskIO.iops || 0).toFixed(0)} op/s</span></div>`;
+    html += `</div>`;
+    
     html += `<div class="mon-card"><div class="mon-card-title">💾 磁盘</div>`;
     disks.forEach(dk => { const dkPct = dk.usage_percent || 0; html += `<div class="disk-item"><div class="disk-mount">${escHtml(dk.mount)}</div><div class="pbar-wrap" style="margin:4px 0"><div class="pbar ${pbarClass(dkPct)}" style="width:${dkPct}%"></div></div><div class="disk-detail"><span>${formatSize(dk.used)}</span><span>${formatSize(dk.available)}</span></div></div>`; });
     html += '</div>';
@@ -3749,17 +4013,101 @@ function renderMonitor(d) {
     }
     
     html += '</div>';
+    
+    // 历史趋势图表区域
+    html += `
+        <div class="chart-section">
+            <div class="chart-tabs">
+                <span style="color:#c9d1d9;font-weight:600;margin-right:12px;">📈 历史趋势</span>
+                <button class="chart-tab ${currentHistoryHours === 1 ? 'active' : ''}" onclick="setHistoryHours(1)">1小时</button>
+                <button class="chart-tab ${currentHistoryHours === 6 ? 'active' : ''}" onclick="setHistoryHours(6)">6小时</button>
+                <button class="chart-tab ${currentHistoryHours === 24 ? 'active' : ''}" onclick="setHistoryHours(24)">24小时</button>
+            </div>
+            <div class="chart-grid">
+                <div class="chart-card">
+                    <div class="chart-card-title">⚡ CPU 使用率</div>
+                    <div class="chart-container"><canvas id="chartCpu"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-card-title">🧠 内存使用率</div>
+                    <div class="chart-container"><canvas id="chartMemory"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-card-title">🌐 网络流量</div>
+                    <div class="chart-container"><canvas id="chartNetwork"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-card-title">💿 磁盘 IO</div>
+                    <div class="chart-container"><canvas id="chartDiskIO"></canvas></div>
+                </div>
+            </div>
+        </div>
+    `;
+    
     document.getElementById('monitorContent').innerHTML = html;
+    
+    // 更新图表
+    fetchHistoryData();
 }
 
 
 
 // ── Init ──────────────────────────────────────────────
 
+// 根据 URL 路径初始化页面
+function initPageFromUrl() {
+    const path = window.location.pathname;
+    if (path === '/files') {
+        switchTab('files');
+    } else if (path === '/tools') {
+        switchTab('tools');
+    } else {
+        // 默认显示监控页面（/ 或 /monitor）
+        switchTab('monitor');
+    }
+}
+
+// 处理浏览器前进/后退
+window.addEventListener('popstate', (e) => {
+    if (e.state && e.state.tab) {
+        // 不调用 switchTab，直接切换显示，避免修改 history
+        currentTab = e.state.tab;
+        document.getElementById('tabFiles').classList.toggle('active', currentTab === 'files');
+        document.getElementById('tabMonitor').classList.toggle('active', currentTab === 'monitor');
+        document.getElementById('tabTools').classList.toggle('active', currentTab === 'tools');
+        const sf = document.getElementById('sectionFiles');
+        const sm = document.getElementById('sectionMonitor');
+        const st = document.getElementById('sectionTools');
+        sf.classList.toggle('section-hidden', currentTab !== 'files');
+        sm.classList.toggle('section-hidden', currentTab !== 'monitor');
+        st.classList.toggle('section-hidden', currentTab !== 'tools');
+        if (currentTab === 'monitor') {
+            sm.style.display = 'flex';
+            startMonitor();
+        } else {
+            stopMonitor();
+            if (currentTab === 'files') {
+                // 什么都不做，保持当前状态
+            } else if (currentTab === 'tools') {
+                st.style.display = 'flex';
+                loadOcrModels();
+            }
+        }
+    }
+});
+
 document.getElementById('pathInput').addEventListener('keydown', e => { if (e.key === 'Enter') loadPath(); });
 document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 renderQuickPaths();  // 初始化快捷路径
 checkAuth();
+
+// 页面加载完成后，根据 URL 初始化页面
+document.addEventListener('DOMContentLoaded', () => {
+    // 延迟执行，等待 checkAuth 完成
+    setTimeout(() => {
+        initPageFromUrl();
+    }, 100);
+});
 </script>
 
 <!-- Modal -->
@@ -3775,6 +4123,178 @@ checkAuth();
 
 <!-- Toast -->
 <div id="toast" class="toast"></div>
+
+<script>
+// ── 历史数据图表 ────────────────────────────────────
+
+async function fetchHistoryData() {
+    try {
+        const resp = await fetch(`/api/system/history?hours=${currentHistoryHours}`);
+        if (resp.status === 401) return;
+        const data = await resp.json();
+        renderCharts(data);
+    } catch (e) {
+        console.error('Failed to fetch history data:', e);
+    }
+}
+
+function setHistoryHours(hours) {
+    currentHistoryHours = hours;
+    fetchHistoryData();
+    // 更新标签页状态
+    document.querySelectorAll('.chart-tab').forEach(btn => {
+        btn.className = 'chart-tab';
+    });
+    event.target.className = 'chart-tab active';
+}
+
+function renderCharts(data) {
+    const timestamps = data.timestamps || [];
+    const labels = timestamps.map(ts => {
+        const date = new Date(ts * 1000);
+        return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+    });
+    
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                labels: { color: '#8b949e', font: { size: 11 } }
+            }
+        },
+        scales: {
+            x: {
+                display: true,
+                ticks: { color: '#484f58', font: { size: 10 }, maxTicksLimit: 10 },
+                grid: { color: '#21262d' }
+            },
+            y: {
+                display: true,
+                ticks: { color: '#484f58', font: { size: 10 } },
+                grid: { color: '#21262d' }
+            }
+        },
+        animation: { duration: 0 }
+    };
+    
+    // CPU 图表
+    if (monitorCharts.cpu) monitorCharts.cpu.destroy();
+    const cpuCtx = document.getElementById('chartCpu');
+    if (cpuCtx) {
+        monitorCharts.cpu = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'CPU %',
+                    data: data.cpu_usage || [],
+                    borderColor: '#58a6ff',
+                    backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, min: 0, max: 100 } } }
+        });
+    }
+    
+    // 内存图表
+    if (monitorCharts.memory) monitorCharts.memory.destroy();
+    const memCtx = document.getElementById('chartMemory');
+    if (memCtx) {
+        monitorCharts.memory = new Chart(memCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '内存 %',
+                    data: data.memory_usage || [],
+                    borderColor: '#3fb950',
+                    backgroundColor: 'rgba(63, 185, 80, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, min: 0, max: 100 } } }
+        });
+    }
+    
+    // 网络图表
+    if (monitorCharts.network) monitorCharts.network.destroy();
+    const netCtx = document.getElementById('chartNetwork');
+    if (netCtx) {
+        const rxData = (data.network_rx_rate || []).map(v => v / 1024 / 1024); // 转为 MB/s
+        const txData = (data.network_tx_rate || []).map(v => v / 1024 / 1024);
+        monitorCharts.network = new Chart(netCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '下行 MB/s',
+                        data: rxData,
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    },
+                    {
+                        label: '上行 MB/s',
+                        data: txData,
+                        borderColor: '#58a6ff',
+                        backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: chartOptions
+        });
+    }
+    
+    // 磁盘 IO 图表
+    if (monitorCharts.diskIO) monitorCharts.diskIO.destroy();
+    const diskIOCtx = document.getElementById('chartDiskIO');
+    if (diskIOCtx) {
+        const readData = (data.disk_io_read || []).map(v => v / 1024 / 1024); // 转为 MB/s
+        const writeData = (data.disk_io_write || []).map(v => v / 1024 / 1024);
+        monitorCharts.diskIO = new Chart(diskIOCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '读取 MB/s',
+                        data: readData,
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    },
+                    {
+                        label: '写入 MB/s',
+                        data: writeData,
+                        borderColor: '#58a6ff',
+                        backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: chartOptions
+        });
+    }
+}
+</script>
 
 </body>
 </html>

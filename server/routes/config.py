@@ -88,12 +88,19 @@ def userconfig_get():
 
     user_cfg = get_user_config()
     effective = get_effective_config()
+    
+    # 获取监控配置
+    from ..config import get_monitor_config
+    monitor_cfg = get_monitor_config()
 
     return jsonify({
         'config': {
             'session_timeout': user_cfg.get('session_timeout', effective['session_timeout']),
             'default_permissions': user_cfg.get('default_permissions', effective['default_permissions']),
-            'download_limits': user_cfg.get('download_limits', effective['download_limits'])
+            'download_limits': user_cfg.get('download_limits', effective['download_limits']),
+            'monitor': {
+                'history_minutes': monitor_cfg.get('history_minutes', 60)
+            }
         },
         'defaults': {
             'session_timeout': 3600,
@@ -104,6 +111,9 @@ def userconfig_get():
                 'max_files_in_zip': 500,
                 'max_dir_depth': 20,
                 'max_file_preview_size': 2 * 1024 * 1024
+            },
+            'monitor': {
+                'history_minutes': 60
             }
         }
     })
@@ -143,6 +153,16 @@ def userconfig_save():
                 if val is not None and (not isinstance(val, int) or val < 1):
                     return jsonify({'error': f'{key} 必须为正整数'}), 400
 
+        # 监控配置验证
+        monitor_config = new_config.get('monitor')
+        if monitor_config is not None:
+            if not isinstance(monitor_config, dict):
+                return jsonify({'error': '监控配置格式无效'}), 400
+            history_minutes = monitor_config.get('history_minutes')
+            if history_minutes is not None:
+                if not isinstance(history_minutes, int) or history_minutes < 1 or history_minutes > 60:
+                    return jsonify({'error': '监控历史时长必须在 1-60 分钟之间'}), 400
+
         # 构建新的用户配置
         user_cfg = get_user_config().copy()
         if session_timeout is not None:
@@ -151,6 +171,17 @@ def userconfig_save():
             user_cfg['default_permissions'] = default_permissions
         if download_limits is not None:
             user_cfg['download_limits'] = download_limits
+        
+        # 保存监控配置到主配置文件
+        if monitor_config is not None:
+            from ..config import get_config, save_config
+            main_cfg = get_config().copy()
+            if 'monitor' not in main_cfg:
+                main_cfg['monitor'] = {}
+            main_cfg['monitor']['history_minutes'] = monitor_config.get('history_minutes', 60)
+            save_config(main_cfg)
+            # 同时更新到用户配置缓存中
+            user_cfg['monitor'] = monitor_config
 
         if save_user_config(user_cfg):
             return jsonify({'success': True, 'config': user_cfg})

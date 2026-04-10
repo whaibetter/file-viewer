@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-File Viewer Backend Service with Flask-SocketIO
+CloudRein Backend Service with Flask-SocketIO
 Supports HTTP API
 
 This file now serves as a compatibility启动脚本.

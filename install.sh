@@ -12,7 +12,7 @@ RESET='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo -e "${BOLD}=== File Viewer 安装程序 ===${RESET}"
+echo -e "${BOLD}=== CloudRein 安装程序 ===${RESET}"
 
 # 检查 root 权限
 if [ "$EUID" -ne 0 ]; then
