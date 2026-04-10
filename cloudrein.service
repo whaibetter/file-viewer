@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/file-viewer
-ExecStart=/usr/bin/python3 /home/file-viewer/file-viewer-server.py
+WorkingDirectory=/home/cloudrein
+ExecStart=/usr/bin/python3 /home/cloudrein/cloudrein-server.py
 Restart=always
 RestartSec=3
 User=root

@@ -65,7 +65,7 @@ def init_user_config_file():
     """初始化用户配置文件路径"""
     global _config, USER_CONFIG_FILE
     _storage_cfg = _config.get("storage", {}) if _config else {}
-    _user_config_path = _storage_cfg.get("user_config_file", "/etc/file-viewer/user_config.yaml")
+    _user_config_path = _storage_cfg.get("user_config_file", "/etc/cloudrein/user_config.yaml")
     USER_CONFIG_FILE = Path(_user_config_path)
 
 
@@ -194,7 +194,7 @@ def get_data_dir() -> Path:
     """获取数据存储目录"""
     global _config, _config_file_path
     _storage_cfg = get_storage_config()
-    _data_dir_config = _storage_cfg.get("data_dir", "/etc/file-viewer")
+    _data_dir_config = _storage_cfg.get("data_dir", "/etc/cloudrein")
     return Path(_data_dir_config) if Path(_data_dir_config).is_absolute() else \
            (_config_file_path.parent / _data_dir_config) if _config_file_path else Path(_data_dir_config)
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# file-viewer 安装脚本
+# CloudRein 安装脚本
 # 用法: sudo ./install.sh
 
 set -e
@@ -26,23 +26,23 @@ pip install -q pyyaml flask flask-socketio 2>/dev/null || pip3 install -q pyyaml
 
 # 2. 复制管理脚本
 echo -e "${CYAN}[2/4] 安装管理脚本...${RESET}"
-cp "$SCRIPT_DIR/file-viewer" /usr/local/bin/
-chmod 755 /usr/local/bin/file-viewer
+cp "$SCRIPT_DIR/cloudrein" /usr/local/bin/
+chmod 755 /usr/local/bin/cloudrein
 
 # 3. 安装 systemd 服务
 echo -e "${CYAN}[3/4] 安装 systemd 服务...${RESET}"
-cp "$SCRIPT_DIR/file-viewer.service" /etc/systemd/system/
+cp "$SCRIPT_DIR/cloudrein.service" /etc/systemd/system/
 systemctl daemon-reload
 
 # 4. 创建密码文件（如果不存在）
 echo -e "${CYAN}[4/4] 初始化密码文件...${RESET}"
-mkdir -p /etc/file-viewer
-if [ ! -f /etc/file-viewer/passwd ]; then
+mkdir -p /etc/cloudrein
+if [ ! -f /etc/cloudrein/passwd ]; then
     # 默认密码: admin
-    echo -n "admin" | sha256sum | awk '{print $1}' > /etc/file-viewer/passwd
-    chmod 600 /etc/file-viewer/passwd
+    echo -n "admin" | sha256sum | awk '{print $1}' > /etc/cloudrein/passwd
+    chmod 600 /etc/cloudrein/passwd
     echo -e "${YELLOW}已创建默认密码文件，默认密码: admin${RESET}"
-    echo -e "${YELLOW}请运行 'file-viewer passwd' 修改密码${RESET}"
+    echo -e "${YELLOW}请运行 'cloudrein passwd' 修改密码${RESET}"
 else
     echo -e "密码文件已存在，跳过"
 fi
@@ -50,23 +50,23 @@ fi
 # 启用并启动服务
 echo ""
 echo -e "${CYAN}启用服务...${RESET}"
-systemctl enable file-viewer
-systemctl restart file-viewer
+systemctl enable cloudrein
+systemctl restart cloudrein
 
 echo ""
 echo -e "${GREEN}${BOLD}安装完成！${RESET}"
 echo ""
-echo -e "项目目录: ${CYAN}/home/file-viewer${RESET}"
+echo -e "项目目录: ${CYAN}/home/cloudrein${RESET}"
 echo -e "访问地址: ${CYAN}http://$(hostname -I | awk '{print $1}')${RESET}"
 echo -e "默认密码: ${CYAN}admin${RESET} (请及时修改)"
 echo ""
 echo -e "管理命令:"
-echo -e "  ${CYAN}file-viewer start${RESET}    启动服务"
-echo -e "  ${CYAN}file-viewer stop${RESET}     停止服务"
-echo -e "  ${CYAN}file-viewer restart${RESET}  重启服务 (加载最新代码)"
-echo -e "  ${CYAN}file-viewer status${RESET}   查看状态"
-echo -e "  ${CYAN}file-viewer passwd${RESET}   修改密码"
+echo -e "  ${CYAN}cloudrein start${RESET}    启动服务"
+echo -e "  ${CYAN}cloudrein stop${RESET}     停止服务"
+echo -e "  ${CYAN}cloudrein restart${RESET}  重启服务 (加载最新代码)"
+echo -e "  ${CYAN}cloudrein status${RESET}   查看状态"
+echo -e "  ${CYAN}cloudrein passwd${RESET}   修改密码"
 echo ""
 echo -e "${BOLD}提示：${RESET}服务直接运行项目目录中的代码"
-echo -e "       修改 index.html 或 file-viewer-server.py 后"
-echo -e "       运行 ${CYAN}file-viewer restart${RESET} 即可生效"
+echo -e "       修改 index.html 或 cloudrein-server.py 后"
+echo -e "       运行 ${CYAN}cloudrein restart${RESET} 即可生效"

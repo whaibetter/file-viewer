@@ -130,7 +130,7 @@ def system_restart():
             time.sleep(0.5)  # 等待500ms让响应返回
             try:
                 # 使用 systemctl 重启服务
-                subprocess.run(['systemctl', 'restart', 'file-viewer'], 
+                subprocess.run(['systemctl', 'restart', 'cloudrein'], 
                              check=True, 
                              capture_output=True,
                              timeout=10)
