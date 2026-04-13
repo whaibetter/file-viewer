@@ -69,13 +69,9 @@ def get_ai_models():
     if not require_auth():
         return jsonify({'error': 'Unauthorized'}), 401
 
+    # 当前仅支持 DeepSeek-OCR 模型
     models = [
         {"id": "deepseek-ai/DeepSeek-OCR", "name": "DeepSeek OCR"},
-        {"id": "Qwen/Qwen2-VL-7B-Instruct", "name": "Qwen2-VL-7B"},
-        {"id": "Qwen/Qwen2-VL-72B-Instruct", "name": "Qwen2-VL-72B"},
-        {"id": "OpenGVLab/InternVL2-26B", "name": "InternVL2-26B"},
-        {"id": "OpenGVLab/InternVL2-8B", "name": "InternVL2-8B"},
-        {"id": "Pro/Qwen/Qwen2-VL-7B-Instruct", "name": "Qwen2-VL-7B Pro"},
     ]
     return jsonify(models)
 
