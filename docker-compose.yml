@@ -1,0 +1,22 @@
+services:
+  cloudrein:
+    build: .
+    container_name: cloudrein
+    restart: unless-stopped
+    ports:
+      - "9001:9001"
+    volumes:
+      - /:/host:ro                     # 宿主机文件系统（只读）
+      - cloudrein-data:/etc/cloudrein  # 持久化数据
+      - ./config.yaml:/app/config.yaml # 主配置文件
+    environment:
+      - CLOUDREIN_HOST=0.0.0.0
+      - CLOUDREIN_PORT=9001
+      - CLOUDREIN_DATA_DIR=/etc/cloudrein
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
+      - HOST_ROOT=/host
+      - DOCKER_CONTAINER=1
+
+volumes:
+  cloudrein-data:

@@ -120,27 +120,32 @@ def system_restart():
     if not require_auth():
         return jsonify({'error': 'Unauthorized'}), 401
 
+    # Docker 容器内不支持 systemctl
+    import os
+    if os.path.exists('/.dockerenv') or os.environ.get('DOCKER_CONTAINER'):
+        return jsonify({'success': True, 'message': '容器环境下请使用 docker restart cloudrein 重启服务'}), 200
+
     try:
         import subprocess
         import threading
         import time
-        
+
         def restart_after_delay():
             """延迟重启，让响应先返回"""
             time.sleep(0.5)  # 等待500ms让响应返回
             try:
                 # 使用 systemctl 重启服务
-                subprocess.run(['systemctl', 'restart', 'cloudrein'], 
-                             check=True, 
+                subprocess.run(['systemctl', 'restart', 'cloudrein'],
+                             check=True,
                              capture_output=True,
                              timeout=10)
             except Exception as e:
                 print(f"Failed to restart service: {e}")
-        
+
         # 在后台线程中执行重启
         restart_thread = threading.Thread(target=restart_after_delay, daemon=True)
         restart_thread.start()
-        
+
         return jsonify({'success': True, 'message': '服务重启中...'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

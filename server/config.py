@@ -211,12 +211,12 @@ _security_cfg = get_security_config()
 _permissions_cfg = get_permissions_config()
 _download_cfg = get_download_limits()
 
-# 服务器配置
-SERVER_HOST = _server_cfg.get("host", "127.0.0.1")
-SERVER_PORT = _server_cfg.get("port", 9001)
+# 服务器配置（环境变量优先）
+SERVER_HOST = os.environ.get("CLOUDREIN_HOST") or _server_cfg.get("host", "127.0.0.1")
+SERVER_PORT = int(os.environ.get("CLOUDREIN_PORT") or _server_cfg.get("port", 9001))
 
-# 数据目录
-DATA_DIR = get_data_dir()
+# 数据目录（环境变量优先）
+DATA_DIR = Path(os.environ["CLOUDREIN_DATA_DIR"]) if os.environ.get("CLOUDREIN_DATA_DIR") else get_data_dir()
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # 数据文件路径

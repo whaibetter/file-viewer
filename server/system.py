@@ -8,6 +8,10 @@ import time
 import subprocess
 from typing import Optional
 
+# Docker 环境下通过环境变量指定宿主机 /proc 和 /sys 的挂载路径
+PROC_DIR = os.environ.get("HOST_PROC", "/proc")
+SYS_DIR = os.environ.get("HOST_SYS", "/sys")
+
 
 def _read_file(path: str, default: str = "") -> str:
     """读取文件内容"""
@@ -35,20 +39,22 @@ def collect_system_info() -> dict:
     info = {}
 
     # 主机名
-    info["hostname"] = _read_file("/etc/hostname", "unknown")
+    hostname_path = os.path.join(os.environ.get("HOST_ROOT", ""), "etc/hostname") if os.environ.get("HOST_ROOT") else "/etc/hostname"
+    info["hostname"] = _read_file(hostname_path, "unknown")
 
     # 内核版本
-    info["kernel"] = _read_file("/proc/version").split(" ")[:3]
+    info["kernel"] = _read_file(f"{PROC_DIR}/version").split(" ")[:3]
     info["kernel"] = " ".join(info["kernel"]) if info["kernel"] else ""
 
     # 操作系统
-    os_release = _read_file("/etc/os-release")
+    os_release_path = os.path.join(os.environ.get("HOST_ROOT", ""), "etc/os-release") if os.environ.get("HOST_ROOT") else "/etc/os-release"
+    os_release = _read_file(os_release_path)
     m = re.search(r'PRETTY_NAME="([^"]+)"', os_release)
     info["os"] = m.group(1) if m else "Linux"
 
     # 运行时间
     try:
-        uptime_s = float(_read_file("/proc/uptime").split()[0])
+        uptime_s = float(_read_file(f"{PROC_DIR}/uptime").split()[0])
         days = int(uptime_s // 86400)
         hours = int((uptime_s % 86400) // 3600)
         mins = int((uptime_s % 3600) // 60)
@@ -62,14 +68,14 @@ def collect_system_info() -> dict:
 
     # 负载
     try:
-        load = _read_file("/proc/loadavg").split()[:3]
+        load = _read_file(f"{PROC_DIR}/loadavg").split()[:3]
         info["load"] = {"1m": float(load[0]), "5m": float(load[1]), "15m": float(load[2])}
     except Exception:
         info["load"] = {"1m": 0, "5m": 0, "15m": 0}
 
     # CPU信息
     try:
-        cpuinfo = _read_file("/proc/cpuinfo")
+        cpuinfo = _read_file(f"{PROC_DIR}/cpuinfo")
         models = re.findall(r"model name\s*:\s*(.+)", cpuinfo)
         info["cpu"] = {
             "model": models[0].strip() if models else "Unknown",
@@ -84,7 +90,7 @@ def collect_system_info() -> dict:
 
     # CPU使用率
     try:
-        with open("/proc/stat") as f:
+        with open(f"{PROC_DIR}/stat") as f:
             line = f.readline()
         vals = list(map(int, line.split()[1:]))
         idle = vals[3] + vals[4]
@@ -103,7 +109,7 @@ def collect_system_info() -> dict:
 
     # 内存信息
     try:
-        meminfo = _read_file("/proc/meminfo")
+        meminfo = _read_file(f"{PROC_DIR}/meminfo")
         mem = {}
         for line in meminfo.splitlines():
             parts = line.split(":")
@@ -142,7 +148,7 @@ def collect_system_info() -> dict:
 
     # 网络信息
     try:
-        net_dev = _read_file("/proc/net/dev")
+        net_dev = _read_file(f"{PROC_DIR}/net/dev")
         interfaces = []
         total_rx, total_tx = 0, 0
         for line in net_dev.splitlines()[2:]:
@@ -181,7 +187,7 @@ def collect_system_info() -> dict:
 
     # 温度
     try:
-        for tp in ["/sys/class/thermal/thermal_zone0/temp", "/sys/class/hwmon/hwmon0/temp1_input"]:
+        for tp in [f"{SYS_DIR}/class/thermal/thermal_zone0/temp", f"{SYS_DIR}/class/hwmon/hwmon0/temp1_input"]:
             raw = _read_file(tp)
             if raw:
                 info["temperature"] = round(int(raw) / 1000, 1)
@@ -194,7 +200,7 @@ def collect_system_info() -> dict:
     # 磁盘 IO 监控
     try:
         # 读取 /proc/diskstats
-        diskstats = _read_file("/proc/diskstats")
+        diskstats = _read_file(f"{PROC_DIR}/diskstats")
         total_read = 0
         total_write = 0
         total_ios = 0
